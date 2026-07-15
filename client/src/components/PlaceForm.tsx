@@ -2,15 +2,18 @@ import { useState, type FormEvent } from "react";
 import { placeTypeLabels, placeTypes, type NewPlace, type PlaceType } from "../types/place";
 
 interface PlaceFormProps {
+  title: string;
   location: { lat: number; lng: number };
+  initialValues?: { name: string; description: string; type: PlaceType };
+  submitLabel: string;
   onSubmit: (place: NewPlace) => void;
   onCancel: () => void;
 }
 
-export function PlaceForm({ location, onSubmit, onCancel }: PlaceFormProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [type, setType] = useState<PlaceType>("ovrigt");
+export function PlaceForm({ title, location, initialValues, submitLabel, onSubmit, onCancel }: PlaceFormProps) {
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [description, setDescription] = useState(initialValues?.description ?? "");
+  const [type, setType] = useState<PlaceType>(initialValues?.type ?? "ovrigt");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -22,14 +25,11 @@ export function PlaceForm({ location, onSubmit, onCancel }: PlaceFormProps) {
       longitude: location.lng,
       type,
     });
-    setName("");
-    setDescription("");
-    setType("ovrigt");
   }
 
   return (
     <form className="place-form" onSubmit={handleSubmit}>
-      <h2>Ny tältplats</h2>
+      <h2>{title}</h2>
       <p className="place-form-coords">
         {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
       </p>
@@ -56,7 +56,7 @@ export function PlaceForm({ location, onSubmit, onCancel }: PlaceFormProps) {
       </label>
 
       <div className="place-form-actions">
-        <button type="submit">Spara plats</button>
+        <button type="submit">{submitLabel}</button>
         <button type="button" onClick={onCancel}>
           Avbryt
         </button>

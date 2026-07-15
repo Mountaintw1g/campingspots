@@ -87,6 +87,12 @@
   align-items: center;
 }
 
+.place-list-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
 .place-list-type {
   font-size: 0.75rem;
   color: #2e7d32;

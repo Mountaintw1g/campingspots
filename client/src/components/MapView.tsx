@@ -23,10 +23,11 @@ interface MapViewProps {
   places: Place[];
   pendingLocation: { lat: number; lng: number } | null;
   onMapClick: (lat: number, lng: number) => void;
+  onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
 }
 
-export function MapView({ places, pendingLocation, onMapClick, onDeletePlace }: MapViewProps) {
+export function MapView({ places, pendingLocation, onMapClick, onEditPlace, onDeletePlace }: MapViewProps) {
   return (
     <MapContainer center={SWEDEN_CENTER} zoom={SWEDEN_ZOOM} style={{ height: "100%", width: "100%" }}>
       <TileLayer
@@ -47,6 +48,7 @@ export function MapView({ places, pendingLocation, onMapClick, onDeletePlace }: 
               </>
             )}
             <br />
+            <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
             <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
           </Popup>
         </Marker>
