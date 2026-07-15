@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import "./LeafletIconFix";
 import type { Place } from "../types/place";
@@ -5,15 +6,31 @@ import { placeTypeLabels } from "../types/place";
 
 const SWEDEN_CENTER: [number, number] = [62.0, 15.0];
 const SWEDEN_ZOOM = 5;
+// Ett dubbelklick (zoom) triggar även två vanliga klick - vänta och se om det
+// följs av ett dblclick innan vi tolkar det som "lägg till plats här".
+const DOUBLE_CLICK_GRACE_MS = 250;
 
 interface MapClickHandlerProps {
   onMapClick: (lat: number, lng: number) => void;
 }
 
 function MapClickHandler({ onMapClick }: MapClickHandlerProps) {
+  const pendingClick = useRef<number | null>(null);
+
   useMapEvents({
     click(e) {
-      onMapClick(e.latlng.lat, e.latlng.lng);
+      const { lat, lng } = e.latlng;
+      if (pendingClick.current !== null) window.clearTimeout(pendingClick.current);
+      pendingClick.current = window.setTimeout(() => {
+        pendingClick.current = null;
+        onMapClick(lat, lng);
+      }, DOUBLE_CLICK_GRACE_MS);
+    },
+    dblclick() {
+      if (pendingClick.current !== null) {
+        window.clearTimeout(pendingClick.current);
+        pendingClick.current = null;
+      }
     },
   });
   return null;
