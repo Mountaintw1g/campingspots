@@ -8,12 +8,26 @@ interface PlaceFormProps {
   submitLabel: string;
   onSubmit: (place: NewPlace) => void;
   onCancel: () => void;
+  onTypeChange?: (type: PlaceType) => void;
 }
 
-export function PlaceForm({ title, location, initialValues, submitLabel, onSubmit, onCancel }: PlaceFormProps) {
+export function PlaceForm({
+  title,
+  location,
+  initialValues,
+  submitLabel,
+  onSubmit,
+  onCancel,
+  onTypeChange,
+}: PlaceFormProps) {
   const [name, setName] = useState(initialValues?.name ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [type, setType] = useState<PlaceType>(initialValues?.type ?? "ovrigt");
+
+  function handleTypeChange(newType: PlaceType) {
+    setType(newType);
+    onTypeChange?.(newType);
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,7 +60,7 @@ export function PlaceForm({ title, location, initialValues, submitLabel, onSubmi
 
       <label>
         Typ
-        <select value={type} onChange={(e) => setType(e.target.value as PlaceType)}>
+        <select value={type} onChange={(e) => handleTypeChange(e.target.value as PlaceType)}>
           {placeTypes.map((t) => (
             <option key={t} value={t}>
               {placeTypeLabels[t]}

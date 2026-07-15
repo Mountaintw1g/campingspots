@@ -2,7 +2,7 @@ import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
-export const placeTypes = ["skog", "vid_vagen", "fjall", "strand", "ovrigt"] as const;
+export const placeTypes = ["skog", "vid_vatten", "fjall", "vagkant", "ovrigt"] as const;
 export type PlaceType = (typeof placeTypes)[number];
 
 export const places = sqliteTable("places", {

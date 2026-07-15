@@ -1,5 +1,5 @@
 import type { Place } from "../types/place";
-import { placeTypeLabels } from "../types/place";
+import { placeTypeColors, placeTypeLabels } from "../types/place";
 
 interface PlaceListProps {
   places: Place[];
@@ -18,7 +18,15 @@ export function PlaceList({ places, onEditPlace, onDeletePlace }: PlaceListProps
         <li key={place.id}>
           <div className="place-list-item-header">
             <strong>{place.name}</strong>
-            <span className="place-list-type">{placeTypeLabels[place.type]}</span>
+            <span
+              className="place-list-type"
+              style={{
+                backgroundColor: placeTypeColors[place.type].soft,
+                color: placeTypeColors[place.type].text,
+              }}
+            >
+              {placeTypeLabels[place.type]}
+            </span>
           </div>
           {place.description && <p>{place.description}</p>}
           <div className="place-list-actions">

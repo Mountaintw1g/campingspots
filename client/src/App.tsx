@@ -4,13 +4,17 @@ import "./App.css";
 import { MapView } from "./components/MapView";
 import { PlaceForm } from "./components/PlaceForm";
 import { PlaceList } from "./components/PlaceList";
+import { TypeLegend } from "./components/TypeLegend";
 import { createPlace, deletePlace, fetchPlaces, updatePlace } from "./api/places";
-import type { NewPlace, Place } from "./types/place";
+import type { NewPlace, Place, PlaceType } from "./types/place";
 
 function App() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+  // Typen som just nu är vald i formuläret - används för att förhandsvisa
+  // markörfärgen på kartan innan platsen sparas.
+  const [previewType, setPreviewType] = useState<PlaceType>("ovrigt");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,11 +26,13 @@ function App() {
   function startCreatingAt(lat: number, lng: number) {
     setEditingPlace(null);
     setPendingLocation({ lat, lng });
+    setPreviewType("ovrigt");
   }
 
   function startEditing(place: Place) {
     setPendingLocation(null);
     setEditingPlace(place);
+    setPreviewType(place.type);
   }
 
   function cancelForm() {
@@ -71,6 +77,7 @@ function App() {
       <aside className="sidebar">
         <h1>Tältplatser i naturen</h1>
         <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
+        <TypeLegend />
         {error && <p className="error">{error}</p>}
         {pendingLocation && (
           <PlaceForm
@@ -80,6 +87,7 @@ function App() {
             location={pendingLocation}
             onSubmit={handleCreate}
             onCancel={cancelForm}
+            onTypeChange={setPreviewType}
           />
         )}
         {editingPlace && (
@@ -95,6 +103,7 @@ function App() {
             }}
             onSubmit={(values) => handleUpdate(editingPlace.id, values)}
             onCancel={cancelForm}
+            onTypeChange={setPreviewType}
           />
         )}
         <h2>Sparade platser ({places.length})</h2>
@@ -104,6 +113,8 @@ function App() {
         <MapView
           places={places}
           pendingLocation={pendingLocation}
+          previewType={previewType}
+          editingPlaceId={editingPlace?.id ?? null}
           onMapClick={startCreatingAt}
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
-import "./LeafletIconFix";
-import type { Place } from "../types/place";
+import { getTentIcon } from "./tentIcon";
+import type { Place, PlaceType } from "../types/place";
 import { placeTypeLabels } from "../types/place";
 
 const SWEDEN_CENTER: [number, number] = [62.0, 15.0];
@@ -39,12 +39,22 @@ function MapClickHandler({ onMapClick }: MapClickHandlerProps) {
 interface MapViewProps {
   places: Place[];
   pendingLocation: { lat: number; lng: number } | null;
+  previewType: PlaceType;
+  editingPlaceId: string | null;
   onMapClick: (lat: number, lng: number) => void;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
 }
 
-export function MapView({ places, pendingLocation, onMapClick, onEditPlace, onDeletePlace }: MapViewProps) {
+export function MapView({
+  places,
+  pendingLocation,
+  previewType,
+  editingPlaceId,
+  onMapClick,
+  onEditPlace,
+  onDeletePlace,
+}: MapViewProps) {
   return (
     <MapContainer center={SWEDEN_CENTER} zoom={SWEDEN_ZOOM} style={{ height: "100%", width: "100%" }}>
       <TileLayer
@@ -53,7 +63,11 @@ export function MapView({ places, pendingLocation, onMapClick, onEditPlace, onDe
       />
       <MapClickHandler onMapClick={onMapClick} />
       {places.map((place) => (
-        <Marker key={place.id} position={[place.latitude, place.longitude]}>
+        <Marker
+          key={place.id}
+          position={[place.latitude, place.longitude]}
+          icon={getTentIcon(place.id === editingPlaceId ? previewType : place.type)}
+        >
           <Popup>
             <strong>{place.name}</strong>
             <br />
@@ -71,7 +85,7 @@ export function MapView({ places, pendingLocation, onMapClick, onEditPlace, onDe
         </Marker>
       ))}
       {pendingLocation && (
-        <Marker position={[pendingLocation.lat, pendingLocation.lng]}>
+        <Marker position={[pendingLocation.lat, pendingLocation.lng]} icon={getTentIcon(previewType)}>
           <Popup>Ny plats - fyll i formuläret</Popup>
         </Marker>
       )}

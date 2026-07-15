@@ -9,6 +9,12 @@
   width: 100%;
 }
 
+.tent-marker-icon {
+  background: transparent;
+  border: none;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+
 .sidebar {
   width: 340px;
   flex-shrink: 0;
@@ -27,6 +33,30 @@
 .sidebar-hint {
   color: #666;
   font-size: 0.9rem;
+}
+
+.type-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  padding: 0;
+  margin: 0.75rem 0 1.1rem;
+}
+
+.type-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.type-legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .error {
@@ -95,8 +125,6 @@
 
 .place-list-type {
   font-size: 0.75rem;
-  color: #2e7d32;
-  background: #e8f5e9;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
