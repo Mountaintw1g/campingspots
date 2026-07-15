@@ -1,0 +1,1 @@
+ALTER TABLE `places` ADD `saved` integer DEFAULT false NOT NULL;

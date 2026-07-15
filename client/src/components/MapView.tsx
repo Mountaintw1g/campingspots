@@ -44,6 +44,7 @@ interface MapViewProps {
   onMapClick: (lat: number, lng: number) => void;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
+  onToggleSaved: (place: Place) => void;
 }
 
 export function MapView({
@@ -54,6 +55,7 @@ export function MapView({
   onMapClick,
   onEditPlace,
   onDeletePlace,
+  onToggleSaved,
 }: MapViewProps) {
   return (
     <MapContainer center={SWEDEN_CENTER} zoom={SWEDEN_ZOOM} style={{ height: "100%", width: "100%" }}>
@@ -80,7 +82,8 @@ export function MapView({
             )}
             <br />
             <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
-            <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
+            <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>{" "}
+            <button onClick={() => onToggleSaved(place)}>{place.saved ? "★ Sparad" : "☆ Spara"}</button>
           </Popup>
         </Marker>
       ))}

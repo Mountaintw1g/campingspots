@@ -50,10 +50,14 @@ placesRouter.post("/", async (req, res) => {
 });
 
 placesRouter.put("/:id", async (req, res) => {
-  const { name, description, latitude, longitude, type } = req.body ?? {};
+  const { name, description, latitude, longitude, type, saved } = req.body ?? {};
 
   if (type !== undefined && !placeTypes.includes(type)) {
     res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}` });
+    return;
+  }
+  if (saved !== undefined && typeof saved !== "boolean") {
+    res.status(400).json({ error: "saved måste vara true eller false" });
     return;
   }
 
@@ -65,6 +69,7 @@ placesRouter.put("/:id", async (req, res) => {
       ...(latitude !== undefined && { latitude }),
       ...(longitude !== undefined && { longitude }),
       ...(type !== undefined && { type }),
+      ...(saved !== undefined && { saved }),
     })
     .where(eq(places.id, req.params.id))
     .returning();

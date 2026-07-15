@@ -16,6 +16,7 @@ export const places = sqliteTable("places", {
   type: text("type", { enum: placeTypes }).notNull().default("ovrigt"),
   // Nullable tills flera användare/inloggning finns.
   ownerId: text("owner_id"),
+  saved: integer("saved", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),

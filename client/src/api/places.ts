@@ -31,6 +31,14 @@ export function updatePlace(id: string, place: NewPlace): Promise<Place> {
   }).then((res) => handleResponse<Place>(res));
 }
 
+export function setPlaceSaved(id: string, saved: boolean): Promise<Place> {
+  return fetch(`${API_BASE}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ saved }),
+  }).then((res) => handleResponse<Place>(res));
+}
+
 export function deletePlace(id: string): Promise<void> {
   return fetch(`${API_BASE}/${id}`, { method: "DELETE" }).then((res) => handleResponse<void>(res));
 }

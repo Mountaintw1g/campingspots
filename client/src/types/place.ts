@@ -31,6 +31,7 @@ export interface Place {
   longitude: number;
   type: PlaceType;
   ownerId: string | null;
+  saved: boolean;
   createdAt: string;
 }
 

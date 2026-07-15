@@ -5,7 +5,8 @@ import { MapView } from "./components/MapView";
 import { PlaceForm } from "./components/PlaceForm";
 import { PlaceList } from "./components/PlaceList";
 import { TypeLegend } from "./components/TypeLegend";
-import { createPlace, deletePlace, fetchPlaces, updatePlace } from "./api/places";
+import { CollapsibleSection } from "./components/CollapsibleSection";
+import { createPlace, deletePlace, fetchPlaces, setPlaceSaved, updatePlace } from "./api/places";
 import type { NewPlace, Place, PlaceType } from "./types/place";
 
 function App() {
@@ -16,6 +17,8 @@ function App() {
   // markörfärgen på kartan innan platsen sparas.
   const [previewType, setPreviewType] = useState<PlaceType>("ovrigt");
   const [error, setError] = useState<string | null>(null);
+
+  const savedPlaces = places.filter((p) => p.saved);
 
   useEffect(() => {
     fetchPlaces()
@@ -72,6 +75,15 @@ function App() {
     }
   }
 
+  async function handleToggleSaved(place: Place) {
+    try {
+      const updated = await setPlaceSaved(place.id, !place.saved);
+      setPlaces((prev) => prev.map((p) => (p.id === place.id ? updated : p)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte uppdatera sparad-status");
+    }
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -106,8 +118,24 @@ function App() {
             onTypeChange={setPreviewType}
           />
         )}
-        <h2>Sparade platser ({places.length})</h2>
-        <PlaceList places={places} onEditPlace={startEditing} onDeletePlace={handleDelete} />
+        <CollapsibleSection title="Mina platser" count={places.length}>
+          <PlaceList
+            places={places}
+            emptyMessage="Inga tältplatser ännu. Klicka på kartan för att lägga till en."
+            onEditPlace={startEditing}
+            onDeletePlace={handleDelete}
+            onToggleSaved={handleToggleSaved}
+          />
+        </CollapsibleSection>
+        <CollapsibleSection title="Sparade platser" count={savedPlaces.length}>
+          <PlaceList
+            places={savedPlaces}
+            emptyMessage="Inga sparade platser ännu. Klicka på stjärnan vid en plats för att spara den här."
+            onEditPlace={startEditing}
+            onDeletePlace={handleDelete}
+            onToggleSaved={handleToggleSaved}
+          />
+        </CollapsibleSection>
       </aside>
       <main className="map-container">
         <MapView
@@ -118,6 +146,7 @@ function App() {
           onMapClick={startCreatingAt}
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}
+          onToggleSaved={handleToggleSaved}
         />
       </main>
     </div>

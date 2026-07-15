@@ -1,15 +1,18 @@
 import type { Place } from "../types/place";
 import { placeTypeColors, placeTypeLabels } from "../types/place";
+import { TentGlyph } from "./TentGlyph";
 
 interface PlaceListProps {
   places: Place[];
+  emptyMessage: string;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
+  onToggleSaved: (place: Place) => void;
 }
 
-export function PlaceList({ places, onEditPlace, onDeletePlace }: PlaceListProps) {
+export function PlaceList({ places, emptyMessage, onEditPlace, onDeletePlace, onToggleSaved }: PlaceListProps) {
   if (places.length === 0) {
-    return <p className="place-list-empty">Inga tältplatser ännu. Klicka på kartan för att lägga till en.</p>;
+    return <p className="place-list-empty">{emptyMessage}</p>;
   }
 
   return (
@@ -17,16 +20,30 @@ export function PlaceList({ places, onEditPlace, onDeletePlace }: PlaceListProps
       {places.map((place) => (
         <li key={place.id}>
           <div className="place-list-item-header">
-            <strong>{place.name}</strong>
-            <span
-              className="place-list-type"
-              style={{
-                backgroundColor: placeTypeColors[place.type].soft,
-                color: placeTypeColors[place.type].text,
-              }}
-            >
-              {placeTypeLabels[place.type]}
-            </span>
+            <div className="place-list-item-title">
+              <TentGlyph type={place.type} size={18} />
+              <strong>{place.name}</strong>
+            </div>
+            <div className="place-list-item-header-right">
+              <span
+                className="place-list-type"
+                style={{
+                  backgroundColor: placeTypeColors[place.type].soft,
+                  color: placeTypeColors[place.type].text,
+                }}
+              >
+                {placeTypeLabels[place.type]}
+              </span>
+              <button
+                type="button"
+                className={`star-toggle${place.saved ? " saved" : ""}`}
+                onClick={() => onToggleSaved(place)}
+                title={place.saved ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
+                aria-label={place.saved ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
+              >
+                {place.saved ? "★" : "☆"}
+              </button>
+            </div>
           </div>
           {place.description && <p>{place.description}</p>}
           <div className="place-list-actions">
