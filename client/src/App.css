@@ -1,0 +1,101 @@
+#root {
+  height: 100vh;
+  width: 100%;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  width: 340px;
+  flex-shrink: 0;
+  padding: 1.25rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+  text-align: left;
+  border-right: 1px solid #ddd;
+}
+
+.sidebar h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-hint {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #b00020;
+  font-size: 0.9rem;
+}
+
+.map-container {
+  flex: 1;
+}
+
+.place-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.place-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 0.25rem;
+}
+
+.place-form-coords {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+}
+
+.place-form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.place-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.place-list li {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.place-list-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.place-list-type {
+  font-size: 0.75rem;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.place-list-empty {
+  color: #666;
+  font-size: 0.9rem;
+}
