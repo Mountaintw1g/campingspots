@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { places, placeTypes, reports, reportReasons } from "../db/schema.js";
 
@@ -130,4 +130,17 @@ placesRouter.post("/:id/reports", async (req, res) => {
     .returning();
 
   res.status(201).json(created);
+});
+
+placesRouter.delete("/:id/reports/:reportId", async (req, res) => {
+  const [deleted] = await db
+    .delete(reports)
+    .where(and(eq(reports.id, req.params.reportId), eq(reports.placeId, req.params.id)))
+    .returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Rapporten hittades inte" });
+    return;
+  }
+  res.status(204).send();
 });

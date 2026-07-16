@@ -5,22 +5,12 @@ import { TentGlyph } from "./TentGlyph";
 interface PlaceListProps {
   places: Place[];
   emptyMessage: string;
-  reportedPlaceIds: Set<string>;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
   onToggleSaved: (place: Place) => void;
-  onReportPlace: (place: Place) => void;
 }
 
-export function PlaceList({
-  places,
-  emptyMessage,
-  reportedPlaceIds,
-  onEditPlace,
-  onDeletePlace,
-  onToggleSaved,
-  onReportPlace,
-}: PlaceListProps) {
+export function PlaceList({ places, emptyMessage, onEditPlace, onDeletePlace, onToggleSaved }: PlaceListProps) {
   if (places.length === 0) {
     return <p className="place-list-empty">{emptyMessage}</p>;
   }
@@ -64,13 +54,6 @@ export function PlaceList({
           <div className="place-list-actions">
             <button onClick={() => onEditPlace(place)}>Redigera</button>
             <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
-            <button
-              onClick={() => onReportPlace(place)}
-              disabled={reportedPlaceIds.has(place.id)}
-              title={reportedPlaceIds.has(place.id) ? "Du har redan rapporterat den här platsen" : undefined}
-            >
-              {reportedPlaceIds.has(place.id) ? "Rapporterad ✓" : "Rapportera"}
-            </button>
           </div>
         </li>
       ))}

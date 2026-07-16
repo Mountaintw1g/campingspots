@@ -52,7 +52,8 @@ export function AboutModal({ onClose }: AboutModalProps) {
           <p>
             Ser du en plats som är felaktig, på privat mark eller olämplig av något annat skäl? Klicka på
             "Rapportera" för att flagga den. Varje plats går att rapportera en gång per besökare, för att
-            hålla systemet till nytta och inte till spam.
+            hålla systemet till nytta och inte till spam. Du kan när som helst se och ta bort din egen
+            rapport via knappen "Din rapport".
           </p>
         </section>
 

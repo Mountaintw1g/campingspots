@@ -50,3 +50,9 @@ export function reportPlace(id: string, reason: ReportReason, comment?: string):
     body: JSON.stringify({ reason, comment }),
   }).then((res) => handleResponse<Report>(res));
 }
+
+export function deleteReport(placeId: string, reportId: string): Promise<void> {
+  return fetch(`${API_BASE}/${placeId}/reports/${reportId}`, { method: "DELETE" }).then((res) =>
+    handleResponse<void>(res),
+  );
+}
