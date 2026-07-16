@@ -5,12 +5,20 @@ import { TentGlyph } from "./TentGlyph";
 interface PlaceListProps {
   places: Place[];
   emptyMessage: string;
+  currentUserId: string | null;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
   onToggleSaved: (place: Place) => void;
 }
 
-export function PlaceList({ places, emptyMessage, onEditPlace, onDeletePlace, onToggleSaved }: PlaceListProps) {
+export function PlaceList({
+  places,
+  emptyMessage,
+  currentUserId,
+  onEditPlace,
+  onDeletePlace,
+  onToggleSaved,
+}: PlaceListProps) {
   if (places.length === 0) {
     return <p className="place-list-empty">{emptyMessage}</p>;
   }
@@ -36,12 +44,12 @@ export function PlaceList({ places, emptyMessage, onEditPlace, onDeletePlace, on
               </span>
               <button
                 type="button"
-                className={`star-toggle${place.saved ? " saved" : ""}`}
+                className={`star-toggle${place.savedByMe ? " saved" : ""}`}
                 onClick={() => onToggleSaved(place)}
-                title={place.saved ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
-                aria-label={place.saved ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
+                title={place.savedByMe ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
+                aria-label={place.savedByMe ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
               >
-                {place.saved ? "★" : "☆"}
+                {place.savedByMe ? "★" : "☆"}
               </button>
             </div>
           </div>
@@ -51,10 +59,12 @@ export function PlaceList({ places, emptyMessage, onEditPlace, onDeletePlace, on
               🚩 {place.reportCount} {place.reportCount === 1 ? "rapport" : "rapporter"}
             </p>
           )}
-          <div className="place-list-actions">
-            <button onClick={() => onEditPlace(place)}>Redigera</button>
-            <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
-          </div>
+          {place.ownerId === currentUserId && (
+            <div className="place-list-actions">
+              <button onClick={() => onEditPlace(place)}>Redigera</button>
+              <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
+            </div>
+          )}
         </li>
       ))}
     </ul>

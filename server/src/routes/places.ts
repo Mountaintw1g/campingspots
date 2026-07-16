@@ -1,36 +1,68 @@
 import { Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { places, placeTypes, reports, reportReasons } from "../db/schema.js";
+import { places, placeTypes, reports, reportReasons, savedPlaces } from "../db/schema.js";
+import { requireAuth, optionalAuth } from "../middleware/auth.js";
 
 export const placesRouter = Router();
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "23505";
+}
 
 async function reportCountsByPlace(): Promise<Map<string, number>> {
   const rows = await db
     .select({ placeId: reports.placeId, count: sql<number>`count(*)` })
     .from(reports)
-    .groupBy(reports.placeId)
-    .all();
+    .groupBy(reports.placeId);
   return new Map(rows.map((r) => [r.placeId, r.count]));
 }
 
-placesRouter.get("/", async (_req, res) => {
-  const rows = await db.select().from(places).all();
+async function savedPlaceIdsForUser(userId: string): Promise<Set<string>> {
+  const rows = await db.select({ placeId: savedPlaces.placeId }).from(savedPlaces).where(eq(savedPlaces.userId, userId));
+  return new Set(rows.map((r) => r.placeId));
+}
+
+async function reportedPlaceIdsForUser(userId: string): Promise<Set<string>> {
+  const rows = await db.select({ placeId: reports.placeId }).from(reports).where(eq(reports.reporterId, userId));
+  return new Set(rows.map((r) => r.placeId));
+}
+
+placesRouter.get("/", optionalAuth, async (req, res) => {
+  const rows = await db.select().from(places);
   const counts = await reportCountsByPlace();
-  res.json(rows.map((row) => ({ ...row, reportCount: counts.get(row.id) ?? 0 })));
+  const savedIds = req.userId ? await savedPlaceIdsForUser(req.userId) : new Set<string>();
+  const reportedIds = req.userId ? await reportedPlaceIdsForUser(req.userId) : new Set<string>();
+
+  res.json(
+    rows.map((row) => ({
+      ...row,
+      reportCount: counts.get(row.id) ?? 0,
+      savedByMe: savedIds.has(row.id),
+      reportedByMe: reportedIds.has(row.id),
+    })),
+  );
 });
 
-placesRouter.get("/:id", async (req, res) => {
-  const row = await db.select().from(places).where(eq(places.id, req.params.id)).get();
+placesRouter.get("/:id", optionalAuth, async (req, res) => {
+  const [row] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!row) {
     res.status(404).json({ error: "Platsen hittades inte" });
     return;
   }
   const counts = await reportCountsByPlace();
-  res.json({ ...row, reportCount: counts.get(row.id) ?? 0 });
+  const savedIds = req.userId ? await savedPlaceIdsForUser(req.userId) : new Set<string>();
+  const reportedIds = req.userId ? await reportedPlaceIdsForUser(req.userId) : new Set<string>();
+
+  res.json({
+    ...row,
+    reportCount: counts.get(row.id) ?? 0,
+    savedByMe: savedIds.has(row.id),
+    reportedByMe: reportedIds.has(row.id),
+  });
 });
 
-placesRouter.post("/", async (req, res) => {
+placesRouter.post("/", requireAuth, async (req, res) => {
   const { name, description, latitude, longitude, type, legalConfirmed } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim() === "") {
@@ -59,21 +91,28 @@ placesRouter.post("/", async (req, res) => {
       longitude,
       type: type ?? "ovrigt",
       legalConfirmed: true,
+      ownerId: req.userId,
     })
     .returning();
 
-  res.status(201).json({ ...created, reportCount: 0 });
+  res.status(201).json({ ...created, reportCount: 0, savedByMe: false, reportedByMe: false });
 });
 
-placesRouter.put("/:id", async (req, res) => {
-  const { name, description, latitude, longitude, type, saved } = req.body ?? {};
+placesRouter.put("/:id", requireAuth, async (req, res) => {
+  const [existing] = await db.select().from(places).where(eq(places.id, req.params.id));
+  if (!existing) {
+    res.status(404).json({ error: "Platsen hittades inte" });
+    return;
+  }
+  if (existing.ownerId !== req.userId) {
+    res.status(403).json({ error: "Du kan bara redigera dina egna platser" });
+    return;
+  }
+
+  const { name, description, latitude, longitude, type } = req.body ?? {};
 
   if (type !== undefined && !placeTypes.includes(type)) {
     res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}` });
-    return;
-  }
-  if (saved !== undefined && typeof saved !== "boolean") {
-    res.status(400).json({ error: "saved måste vara true eller false" });
     return;
   }
 
@@ -85,30 +124,70 @@ placesRouter.put("/:id", async (req, res) => {
       ...(latitude !== undefined && { latitude }),
       ...(longitude !== undefined && { longitude }),
       ...(type !== undefined && { type }),
-      ...(saved !== undefined && { saved }),
     })
     .where(eq(places.id, req.params.id))
     .returning();
 
-  if (!updated) {
-    res.status(404).json({ error: "Platsen hittades inte" });
-    return;
-  }
   const counts = await reportCountsByPlace();
-  res.json({ ...updated, reportCount: counts.get(updated.id) ?? 0 });
+  const savedIds = await savedPlaceIdsForUser(req.userId!);
+  const reportedIds = await reportedPlaceIdsForUser(req.userId!);
+
+  res.json({
+    ...updated,
+    reportCount: counts.get(updated.id) ?? 0,
+    savedByMe: savedIds.has(updated.id),
+    reportedByMe: reportedIds.has(updated.id),
+  });
 });
 
-placesRouter.delete("/:id", async (req, res) => {
-  const [deleted] = await db.delete(places).where(eq(places.id, req.params.id)).returning();
-  if (!deleted) {
+placesRouter.delete("/:id", requireAuth, async (req, res) => {
+  const [existing] = await db.select().from(places).where(eq(places.id, req.params.id));
+  if (!existing) {
     res.status(404).json({ error: "Platsen hittades inte" });
     return;
   }
+  if (existing.ownerId !== req.userId) {
+    res.status(403).json({ error: "Du kan bara ta bort dina egna platser" });
+    return;
+  }
+
+  await db.delete(places).where(eq(places.id, req.params.id));
   res.status(204).send();
 });
 
-placesRouter.post("/:id/reports", async (req, res) => {
-  const place = await db.select().from(places).where(eq(places.id, req.params.id)).get();
+placesRouter.post("/:id/save", requireAuth, async (req, res) => {
+  const [place] = await db.select().from(places).where(eq(places.id, req.params.id));
+  if (!place) {
+    res.status(404).json({ error: "Platsen hittades inte" });
+    return;
+  }
+
+  await db.insert(savedPlaces).values({ userId: req.userId!, placeId: req.params.id }).onConflictDoNothing();
+  res.status(204).send();
+});
+
+placesRouter.delete("/:id/save", requireAuth, async (req, res) => {
+  await db
+    .delete(savedPlaces)
+    .where(and(eq(savedPlaces.userId, req.userId!), eq(savedPlaces.placeId, req.params.id)));
+  res.status(204).send();
+});
+
+placesRouter.get("/:id/reports/mine", requireAuth, async (req, res) => {
+  const [mine] = await db
+    .select()
+    .from(reports)
+    .where(and(eq(reports.placeId, req.params.id), eq(reports.reporterId, req.userId!)));
+
+  if (!mine) {
+    res.status(404).json({ error: "Ingen rapport hittades" });
+    return;
+  }
+  res.json(mine);
+});
+
+placesRouter.post("/:id/reports", requireAuth, async (req, res) => {
+  const [place] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!place) {
     res.status(404).json({ error: "Platsen hittades inte" });
     return;
@@ -120,22 +199,37 @@ placesRouter.post("/:id/reports", async (req, res) => {
     return;
   }
 
-  const [created] = await db
-    .insert(reports)
-    .values({
-      placeId: place.id,
-      reason: reason as (typeof reportReasons)[number],
-      comment: typeof comment === "string" && comment.trim() !== "" ? comment.trim() : null,
-    })
-    .returning();
+  try {
+    const [created] = await db
+      .insert(reports)
+      .values({
+        placeId: place.id,
+        reporterId: req.userId!,
+        reason: reason as (typeof reportReasons)[number],
+        comment: typeof comment === "string" && comment.trim() !== "" ? comment.trim() : null,
+      })
+      .returning();
 
-  res.status(201).json(created);
+    res.status(201).json(created);
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      res.status(409).json({ error: "Du har redan rapporterat den här platsen" });
+      return;
+    }
+    throw err;
+  }
 });
 
-placesRouter.delete("/:id/reports/:reportId", async (req, res) => {
+placesRouter.delete("/:id/reports/:reportId", requireAuth, async (req, res) => {
   const [deleted] = await db
     .delete(reports)
-    .where(and(eq(reports.id, req.params.reportId), eq(reports.placeId, req.params.id)))
+    .where(
+      and(
+        eq(reports.id, req.params.reportId),
+        eq(reports.placeId, req.params.id),
+        eq(reports.reporterId, req.userId!),
+      ),
+    )
     .returning();
 
   if (!deleted) {

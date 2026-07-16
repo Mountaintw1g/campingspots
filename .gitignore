@@ -1,7 +1,8 @@
 node_modules/
 dist/
-server/data/
 *.log
 .DS_Store
 .claude/settings.local.json
 .preview/
+.env
+.env.local

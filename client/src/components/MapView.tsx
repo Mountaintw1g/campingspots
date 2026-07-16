@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import { getTentIcon } from "./tentIcon";
-import type { Place, PlaceType, Report } from "../types/place";
+import type { Place, PlaceType } from "../types/place";
 import { placeTypeLabels } from "../types/place";
 
 const SWEDEN_CENTER: [number, number] = [62.0, 15.0];
@@ -101,7 +101,7 @@ interface MapViewProps {
   pendingLocation: { lat: number; lng: number } | null;
   previewType: PlaceType;
   editingPlaceId: string | null;
-  myReports: Map<string, Report>;
+  currentUserId: string | null;
   onMapClick: (lat: number, lng: number) => void;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
@@ -115,7 +115,7 @@ export function MapView({
   pendingLocation,
   previewType,
   editingPlaceId,
-  myReports,
+  currentUserId,
   onMapClick,
   onEditPlace,
   onDeletePlace,
@@ -154,10 +154,14 @@ export function MapView({
               </>
             )}
             <br />
-            <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
-            <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>{" "}
-            <button onClick={() => onToggleSaved(place)}>{place.saved ? "★ Sparad" : "☆ Spara"}</button>{" "}
-            {myReports.has(place.id) ? (
+            {place.ownerId === currentUserId && (
+              <>
+                <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
+                <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>{" "}
+              </>
+            )}
+            <button onClick={() => onToggleSaved(place)}>{place.savedByMe ? "★ Sparad" : "☆ Spara"}</button>{" "}
+            {place.reportedByMe ? (
               <button onClick={() => onViewReport(place)}>Din rapport</button>
             ) : (
               <button onClick={() => onReportPlace(place)}>Rapportera</button>

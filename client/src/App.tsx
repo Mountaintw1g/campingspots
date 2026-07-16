@@ -10,27 +10,33 @@ import { ReportForm } from "./components/ReportForm";
 import { MyReportPanel } from "./components/MyReportPanel";
 import { Logo } from "./components/Logo";
 import { AboutModal } from "./components/AboutModal";
+import { AuthModal } from "./components/AuthModal";
+import { useAuth } from "./context/AuthContext";
 import {
   createPlace,
   deletePlace,
   deleteReport,
+  fetchMyReport,
   fetchPlaces,
   reportPlace,
-  setPlaceSaved,
+  savePlaceForMe,
+  unsavePlaceForMe,
   updatePlace,
 } from "./api/places";
-import { getMyReports, removeMyReport, saveMyReport } from "./lib/myReports";
 import { placeTypes } from "./types/place";
 import type { NewPlace, Place, PlaceType, Report, ReportReason } from "./types/place";
 
 function App() {
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const [places, setPlaces] = useState<Place[]>([]);
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
   const [reportingPlace, setReportingPlace] = useState<Place | null>(null);
   const [viewingReportPlace, setViewingReportPlace] = useState<Place | null>(null);
-  const [myReports, setMyReports] = useState<Map<string, Report>>(() => getMyReports());
+  const [viewingReport, setViewingReport] = useState<Report | null>(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [activeTypes, setActiveTypes] = useState<Set<PlaceType>>(() => new Set(placeTypes));
   // Typen som just nu är vald i formuläret - används för att förhandsvisa
   // markörfärgen på kartan innan platsen sparas.
@@ -38,20 +44,32 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const savedPlaces = places.filter((p) => p.saved);
-  const filteredPlaces = places.filter((p) => activeTypes.has(p.type));
+  const myPlaces = user ? places.filter((p) => p.ownerId === user.id) : [];
+  const savedPlaces = places.filter((p) => p.savedByMe);
+  const filteredMyPlaces = myPlaces.filter((p) => activeTypes.has(p.type));
   const filteredSavedPlaces = savedPlaces.filter((p) => activeTypes.has(p.type));
   // Håll kvar markören för den plats som just redigeras även om dess typ är
   // filtrerad bort, så den inte försvinner mitt under redigering.
   const mapPlaces = places.filter((p) => activeTypes.has(p.type) || p.id === editingPlace?.id);
 
   useEffect(() => {
+    if (authLoading) return;
     fetchPlaces()
       .then(setPlaces)
       .catch((err) => setError(err.message));
-  }, []);
+    // Hämta om platserna när inloggningsstatus ändras, så savedByMe/reportedByMe/ownerId-koll blir rätt.
+  }, [authLoading, user?.id]);
+
+  function requireLogin(): boolean {
+    if (!user) {
+      setShowAuth(true);
+      return false;
+    }
+    return true;
+  }
 
   function startCreatingAt(lat: number, lng: number) {
+    if (!requireLogin()) return;
     setEditingPlace(null);
     setReportingPlace(null);
     setViewingReportPlace(null);
@@ -61,6 +79,7 @@ function App() {
   }
 
   function startEditing(place: Place) {
+    if (!requireLogin()) return;
     setPendingLocation(null);
     setReportingPlace(null);
     setViewingReportPlace(null);
@@ -70,7 +89,8 @@ function App() {
   }
 
   function startReporting(place: Place) {
-    if (myReports.has(place.id)) return;
+    if (!requireLogin()) return;
+    if (place.reportedByMe) return;
     setPendingLocation(null);
     setEditingPlace(null);
     setViewingReportPlace(null);
@@ -78,12 +98,20 @@ function App() {
     setNotice(null);
   }
 
-  function startViewingReport(place: Place) {
+  async function startViewingReport(place: Place) {
+    if (!requireLogin()) return;
     setPendingLocation(null);
     setEditingPlace(null);
     setReportingPlace(null);
-    setViewingReportPlace(place);
     setNotice(null);
+    try {
+      const report = await fetchMyReport(place.id);
+      if (!report) return;
+      setViewingReportPlace(place);
+      setViewingReport(report);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte hämta rapporten");
+    }
   }
 
   function toggleType(type: PlaceType) {
@@ -107,6 +135,7 @@ function App() {
     setEditingPlace(null);
     setReportingPlace(null);
     setViewingReportPlace(null);
+    setViewingReport(null);
   }
 
   async function handleCreate(newPlace: NewPlace) {
@@ -137,24 +166,21 @@ function App() {
       setPlaces((prev) => prev.filter((p) => p.id !== id));
       if (editingPlace?.id === id) setEditingPlace(null);
       if (reportingPlace?.id === id) setReportingPlace(null);
-      if (viewingReportPlace?.id === id) setViewingReportPlace(null);
-      if (myReports.has(id)) {
-        removeMyReport(id);
-        setMyReports((prev) => {
-          const next = new Map(prev);
-          next.delete(id);
-          return next;
-        });
-      }
+      if (viewingReportPlace?.id === id) cancelForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte ta bort platsen");
     }
   }
 
   async function handleToggleSaved(place: Place) {
+    if (!requireLogin()) return;
     try {
-      const updated = await setPlaceSaved(place.id, !place.saved);
-      setPlaces((prev) => prev.map((p) => (p.id === place.id ? updated : p)));
+      if (place.savedByMe) {
+        await unsavePlaceForMe(place.id);
+      } else {
+        await savePlaceForMe(place.id);
+      }
+      setPlaces((prev) => prev.map((p) => (p.id === place.id ? { ...p, savedByMe: !p.savedByMe } : p)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte uppdatera sparad-status");
     }
@@ -163,12 +189,12 @@ function App() {
   async function handleReport(reason: ReportReason, comment: string) {
     if (!reportingPlace) return;
     try {
-      const created = await reportPlace(reportingPlace.id, reason, comment || undefined);
+      await reportPlace(reportingPlace.id, reason, comment || undefined);
       setPlaces((prev) =>
-        prev.map((p) => (p.id === reportingPlace.id ? { ...p, reportCount: p.reportCount + 1 } : p)),
+        prev.map((p) =>
+          p.id === reportingPlace.id ? { ...p, reportCount: p.reportCount + 1, reportedByMe: true } : p,
+        ),
       );
-      saveMyReport(created);
-      setMyReports((prev) => new Map(prev).set(reportingPlace.id, created));
       setReportingPlace(null);
       setNotice("Tack, rapporten har skickats.");
       setError(null);
@@ -178,23 +204,17 @@ function App() {
   }
 
   async function handleDeleteReport() {
-    if (!viewingReportPlace) return;
-    const report = myReports.get(viewingReportPlace.id);
-    if (!report) return;
+    if (!viewingReportPlace || !viewingReport) return;
     try {
-      await deleteReport(viewingReportPlace.id, report.id);
+      await deleteReport(viewingReportPlace.id, viewingReport.id);
       setPlaces((prev) =>
         prev.map((p) =>
-          p.id === viewingReportPlace.id ? { ...p, reportCount: Math.max(0, p.reportCount - 1) } : p,
+          p.id === viewingReportPlace.id
+            ? { ...p, reportCount: Math.max(0, p.reportCount - 1), reportedByMe: false }
+            : p,
         ),
       );
-      removeMyReport(viewingReportPlace.id);
-      setMyReports((prev) => {
-        const next = new Map(prev);
-        next.delete(viewingReportPlace.id);
-        return next;
-      });
-      setViewingReportPlace(null);
+      cancelForm();
       setNotice("Rapporten togs bort.");
       setError(null);
     } catch (err) {
@@ -210,9 +230,23 @@ function App() {
           <h1>
             <span className="brand-accent">Tält</span>kartan
           </h1>
-          <button type="button" className="about-link-button" onClick={() => setShowAbout(true)}>
-            Om
-          </button>
+          <div className="brand-actions">
+            {user ? (
+              <>
+                <span className="brand-user">{user.email}</span>
+                <button type="button" className="about-link-button" onClick={() => signOut()}>
+                  Logga ut
+                </button>
+              </>
+            ) : (
+              <button type="button" className="about-link-button" onClick={() => setShowAuth(true)}>
+                Logga in
+              </button>
+            )}
+            <button type="button" className="about-link-button" onClick={() => setShowAbout(true)}>
+              Om
+            </button>
+          </div>
         </div>
         <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
         <TypeLegend activeTypes={activeTypes} onToggleType={toggleType} onShowAll={showAllTypes} />
@@ -247,44 +281,49 @@ function App() {
           />
         )}
         {reportingPlace && <ReportForm place={reportingPlace} onSubmit={handleReport} onCancel={cancelForm} />}
-        {viewingReportPlace &&
-          (() => {
-            const report = myReports.get(viewingReportPlace.id);
-            if (!report) return null;
-            return (
-              <MyReportPanel
-                place={viewingReportPlace}
-                report={report}
-                onDelete={handleDeleteReport}
-                onClose={cancelForm}
-              />
-            );
-          })()}
-        <CollapsibleSection title="Mina platser" count={filteredPlaces.length}>
-          <PlaceList
-            places={filteredPlaces}
-            emptyMessage={
-              places.length === 0
-                ? "Inga tältplatser ännu. Klicka på kartan för att lägga till en."
-                : "Inga platser matchar valda kategorier."
-            }
-            onEditPlace={startEditing}
-            onDeletePlace={handleDelete}
-            onToggleSaved={handleToggleSaved}
+        {viewingReportPlace && viewingReport && (
+          <MyReportPanel
+            place={viewingReportPlace}
+            report={viewingReport}
+            onDelete={handleDeleteReport}
+            onClose={cancelForm}
           />
+        )}
+        <CollapsibleSection title="Mina platser" count={filteredMyPlaces.length}>
+          {!user ? (
+            <p className="place-list-empty">Logga in för att se och hantera dina egna platser.</p>
+          ) : (
+            <PlaceList
+              places={filteredMyPlaces}
+              emptyMessage={
+                myPlaces.length === 0
+                  ? "Inga tältplatser ännu. Klicka på kartan för att lägga till en."
+                  : "Inga platser matchar valda kategorier."
+              }
+              currentUserId={user?.id ?? null}
+              onEditPlace={startEditing}
+              onDeletePlace={handleDelete}
+              onToggleSaved={handleToggleSaved}
+            />
+          )}
         </CollapsibleSection>
         <CollapsibleSection title="Sparade platser" count={filteredSavedPlaces.length}>
-          <PlaceList
-            places={filteredSavedPlaces}
-            emptyMessage={
-              savedPlaces.length === 0
-                ? "Inga sparade platser ännu. Klicka på stjärnan vid en plats för att spara den här."
-                : "Inga sparade platser matchar valda kategorier."
-            }
-            onEditPlace={startEditing}
-            onDeletePlace={handleDelete}
-            onToggleSaved={handleToggleSaved}
-          />
+          {!user ? (
+            <p className="place-list-empty">Logga in för att spara favoritplatser.</p>
+          ) : (
+            <PlaceList
+              places={filteredSavedPlaces}
+              emptyMessage={
+                savedPlaces.length === 0
+                  ? "Inga sparade platser ännu. Klicka på stjärnan vid en plats för att spara den här."
+                  : "Inga sparade platser matchar valda kategorier."
+              }
+              currentUserId={user?.id ?? null}
+              onEditPlace={startEditing}
+              onDeletePlace={handleDelete}
+              onToggleSaved={handleToggleSaved}
+            />
+          )}
         </CollapsibleSection>
       </aside>
       <main className="map-container">
@@ -293,7 +332,7 @@ function App() {
           pendingLocation={pendingLocation}
           previewType={previewType}
           editingPlaceId={editingPlace?.id ?? null}
-          myReports={myReports}
+          currentUserId={user?.id ?? null}
           onMapClick={startCreatingAt}
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}
@@ -303,6 +342,7 @@ function App() {
         />
       </main>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

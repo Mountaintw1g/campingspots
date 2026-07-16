@@ -1,16 +1,13 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import "dotenv/config";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema.js";
 
-const dataDir = fileURLToPath(new URL("../../data", import.meta.url));
-const dbPath = fileURLToPath(new URL("../../data/campingspots.db", import.meta.url));
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL saknas");
+}
 
-mkdirSync(dataDir, { recursive: true });
+// prepare: false krävs för Supabases Supavisor-pooler (session mode, port 5432).
+const client = postgres(process.env.DATABASE_URL, { prepare: false });
 
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(client, { schema });

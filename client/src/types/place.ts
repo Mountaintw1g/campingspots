@@ -42,9 +42,10 @@ export interface Place {
   longitude: number;
   type: PlaceType;
   ownerId: string | null;
-  saved: boolean;
   legalConfirmed: boolean;
   reportCount: number;
+  savedByMe: boolean;
+  reportedByMe: boolean;
   createdAt: string;
 }
 
