@@ -15,6 +15,13 @@
       "when": 1784124101805,
       "tag": "0001_demonic_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784188406867,
+      "tag": "0002_flippant_queen_noir",
+      "breakpoints": true
     }
   ]
 }

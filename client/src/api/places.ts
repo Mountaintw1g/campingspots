@@ -1,4 +1,4 @@
-import type { NewPlace, Place } from "../types/place";
+import type { NewPlace, Place, Report, ReportReason } from "../types/place";
 
 const API_BASE = "/api/places";
 
@@ -41,4 +41,12 @@ export function setPlaceSaved(id: string, saved: boolean): Promise<Place> {
 
 export function deletePlace(id: string): Promise<void> {
   return fetch(`${API_BASE}/${id}`, { method: "DELETE" }).then((res) => handleResponse<void>(res));
+}
+
+export function reportPlace(id: string, reason: ReportReason, comment?: string): Promise<Report> {
+  return fetch(`${API_BASE}/${id}/reports`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason, comment }),
+  }).then((res) => handleResponse<Report>(res));
 }

@@ -6,17 +6,20 @@ import { PlaceForm } from "./components/PlaceForm";
 import { PlaceList } from "./components/PlaceList";
 import { TypeLegend } from "./components/TypeLegend";
 import { CollapsibleSection } from "./components/CollapsibleSection";
-import { createPlace, deletePlace, fetchPlaces, setPlaceSaved, updatePlace } from "./api/places";
-import type { NewPlace, Place, PlaceType } from "./types/place";
+import { ReportForm } from "./components/ReportForm";
+import { createPlace, deletePlace, fetchPlaces, reportPlace, setPlaceSaved, updatePlace } from "./api/places";
+import type { NewPlace, Place, PlaceType, ReportReason } from "./types/place";
 
 function App() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+  const [reportingPlace, setReportingPlace] = useState<Place | null>(null);
   // Typen som just nu är vald i formuläret - används för att förhandsvisa
   // markörfärgen på kartan innan platsen sparas.
   const [previewType, setPreviewType] = useState<PlaceType>("ovrigt");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const savedPlaces = places.filter((p) => p.saved);
 
@@ -28,19 +31,31 @@ function App() {
 
   function startCreatingAt(lat: number, lng: number) {
     setEditingPlace(null);
+    setReportingPlace(null);
     setPendingLocation({ lat, lng });
     setPreviewType("ovrigt");
+    setNotice(null);
   }
 
   function startEditing(place: Place) {
     setPendingLocation(null);
+    setReportingPlace(null);
     setEditingPlace(place);
     setPreviewType(place.type);
+    setNotice(null);
+  }
+
+  function startReporting(place: Place) {
+    setPendingLocation(null);
+    setEditingPlace(null);
+    setReportingPlace(place);
+    setNotice(null);
   }
 
   function cancelForm() {
     setPendingLocation(null);
     setEditingPlace(null);
+    setReportingPlace(null);
   }
 
   async function handleCreate(newPlace: NewPlace) {
@@ -70,6 +85,7 @@ function App() {
       await deletePlace(id);
       setPlaces((prev) => prev.filter((p) => p.id !== id));
       if (editingPlace?.id === id) setEditingPlace(null);
+      if (reportingPlace?.id === id) setReportingPlace(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte ta bort platsen");
     }
@@ -84,6 +100,21 @@ function App() {
     }
   }
 
+  async function handleReport(reason: ReportReason, comment: string) {
+    if (!reportingPlace) return;
+    try {
+      await reportPlace(reportingPlace.id, reason, comment || undefined);
+      setPlaces((prev) =>
+        prev.map((p) => (p.id === reportingPlace.id ? { ...p, reportCount: p.reportCount + 1 } : p)),
+      );
+      setReportingPlace(null);
+      setNotice("Tack, rapporten har skickats.");
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte skicka rapporten");
+    }
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -91,12 +122,14 @@ function App() {
         <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
         <TypeLegend />
         {error && <p className="error">{error}</p>}
+        {notice && <p className="notice">{notice}</p>}
         {pendingLocation && (
           <PlaceForm
             key="new"
             title="Ny tältplats"
             submitLabel="Spara plats"
             location={pendingLocation}
+            requireLegalConfirmation
             onSubmit={handleCreate}
             onCancel={cancelForm}
             onTypeChange={setPreviewType}
@@ -118,6 +151,7 @@ function App() {
             onTypeChange={setPreviewType}
           />
         )}
+        {reportingPlace && <ReportForm place={reportingPlace} onSubmit={handleReport} onCancel={cancelForm} />}
         <CollapsibleSection title="Mina platser" count={places.length}>
           <PlaceList
             places={places}
@@ -125,6 +159,7 @@ function App() {
             onEditPlace={startEditing}
             onDeletePlace={handleDelete}
             onToggleSaved={handleToggleSaved}
+            onReportPlace={startReporting}
           />
         </CollapsibleSection>
         <CollapsibleSection title="Sparade platser" count={savedPlaces.length}>
@@ -134,6 +169,7 @@ function App() {
             onEditPlace={startEditing}
             onDeletePlace={handleDelete}
             onToggleSaved={handleToggleSaved}
+            onReportPlace={startReporting}
           />
         </CollapsibleSection>
       </aside>
@@ -147,6 +183,7 @@ function App() {
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}
           onToggleSaved={handleToggleSaved}
+          onReportPlace={startReporting}
         />
       </main>
     </div>

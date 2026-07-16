@@ -6,6 +6,7 @@ interface PlaceFormProps {
   location: { lat: number; lng: number };
   initialValues?: { name: string; description: string; type: PlaceType };
   submitLabel: string;
+  requireLegalConfirmation?: boolean;
   onSubmit: (place: NewPlace) => void;
   onCancel: () => void;
   onTypeChange?: (type: PlaceType) => void;
@@ -16,6 +17,7 @@ export function PlaceForm({
   location,
   initialValues,
   submitLabel,
+  requireLegalConfirmation = false,
   onSubmit,
   onCancel,
   onTypeChange,
@@ -23,6 +25,7 @@ export function PlaceForm({
   const [name, setName] = useState(initialValues?.name ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [type, setType] = useState<PlaceType>(initialValues?.type ?? "ovrigt");
+  const [legalConfirmed, setLegalConfirmed] = useState(!requireLegalConfirmation);
 
   function handleTypeChange(newType: PlaceType) {
     setType(newType);
@@ -31,13 +34,14 @@ export function PlaceForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !legalConfirmed) return;
     onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
       latitude: location.lat,
       longitude: location.lng,
       type,
+      legalConfirmed,
     });
   }
 
@@ -69,8 +73,22 @@ export function PlaceForm({
         </select>
       </label>
 
+      {requireLegalConfirmation && (
+        <label className="place-form-checkbox">
+          <input
+            type="checkbox"
+            checked={legalConfirmed}
+            onChange={(e) => setLegalConfirmed(e.target.checked)}
+          />
+          Jag har kontrollerat att platsen är laglig att tälta på enligt allemansrätten (inte privat tomt,
+          skyddat område eller för nära bebyggelse).
+        </label>
+      )}
+
       <div className="place-form-actions">
-        <button type="submit">{submitLabel}</button>
+        <button type="submit" disabled={!legalConfirmed}>
+          {submitLabel}
+        </button>
         <button type="button" onClick={onCancel}>
           Avbryt
         </button>

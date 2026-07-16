@@ -1,13 +1,23 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { places, placeTypes } from "../db/schema.js";
+import { places, placeTypes, reports, reportReasons } from "../db/schema.js";
 
 export const placesRouter = Router();
 
+async function reportCountsByPlace(): Promise<Map<string, number>> {
+  const rows = await db
+    .select({ placeId: reports.placeId, count: sql<number>`count(*)` })
+    .from(reports)
+    .groupBy(reports.placeId)
+    .all();
+  return new Map(rows.map((r) => [r.placeId, r.count]));
+}
+
 placesRouter.get("/", async (_req, res) => {
   const rows = await db.select().from(places).all();
-  res.json(rows);
+  const counts = await reportCountsByPlace();
+  res.json(rows.map((row) => ({ ...row, reportCount: counts.get(row.id) ?? 0 })));
 });
 
 placesRouter.get("/:id", async (req, res) => {
@@ -16,11 +26,12 @@ placesRouter.get("/:id", async (req, res) => {
     res.status(404).json({ error: "Platsen hittades inte" });
     return;
   }
-  res.json(row);
+  const counts = await reportCountsByPlace();
+  res.json({ ...row, reportCount: counts.get(row.id) ?? 0 });
 });
 
 placesRouter.post("/", async (req, res) => {
-  const { name, description, latitude, longitude, type } = req.body ?? {};
+  const { name, description, latitude, longitude, type, legalConfirmed } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim() === "") {
     res.status(400).json({ error: "Namn krävs" });
@@ -34,6 +45,10 @@ placesRouter.post("/", async (req, res) => {
     res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}` });
     return;
   }
+  if (legalConfirmed !== true) {
+    res.status(400).json({ error: "Du måste bekräfta att platsen är laglig enligt allemansrätten" });
+    return;
+  }
 
   const [created] = await db
     .insert(places)
@@ -43,10 +58,11 @@ placesRouter.post("/", async (req, res) => {
       latitude,
       longitude,
       type: type ?? "ovrigt",
+      legalConfirmed: true,
     })
     .returning();
 
-  res.status(201).json(created);
+  res.status(201).json({ ...created, reportCount: 0 });
 });
 
 placesRouter.put("/:id", async (req, res) => {
@@ -78,7 +94,8 @@ placesRouter.put("/:id", async (req, res) => {
     res.status(404).json({ error: "Platsen hittades inte" });
     return;
   }
-  res.json(updated);
+  const counts = await reportCountsByPlace();
+  res.json({ ...updated, reportCount: counts.get(updated.id) ?? 0 });
 });
 
 placesRouter.delete("/:id", async (req, res) => {
@@ -88,4 +105,29 @@ placesRouter.delete("/:id", async (req, res) => {
     return;
   }
   res.status(204).send();
+});
+
+placesRouter.post("/:id/reports", async (req, res) => {
+  const place = await db.select().from(places).where(eq(places.id, req.params.id)).get();
+  if (!place) {
+    res.status(404).json({ error: "Platsen hittades inte" });
+    return;
+  }
+
+  const { reason, comment } = req.body ?? {};
+  if (typeof reason !== "string" || !reportReasons.includes(reason as (typeof reportReasons)[number])) {
+    res.status(400).json({ error: `Anledning måste vara en av: ${reportReasons.join(", ")}` });
+    return;
+  }
+
+  const [created] = await db
+    .insert(reports)
+    .values({
+      placeId: place.id,
+      reason: reason as (typeof reportReasons)[number],
+      comment: typeof comment === "string" && comment.trim() !== "" ? comment.trim() : null,
+    })
+    .returning();
+
+  res.status(201).json(created);
 });

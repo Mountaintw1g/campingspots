@@ -23,6 +23,17 @@ export const placeTypeColors: Record<PlaceType, PlaceTypeColor> = {
   ovrigt: { solid: "#7a7264", soft: "#efece7", text: "#625b4f" },
 };
 
+export const reportReasons = ["privat_mark", "farlig_plats", "felaktig_info", "ej_tillatet", "annat"] as const;
+export type ReportReason = (typeof reportReasons)[number];
+
+export const reportReasonLabels: Record<ReportReason, string> = {
+  privat_mark: "Privat mark",
+  farlig_plats: "Farlig eller olämplig plats",
+  felaktig_info: "Felaktig information",
+  ej_tillatet: "Inte tillåtet enligt allemansrätten",
+  annat: "Annat",
+};
+
 export interface Place {
   id: string;
   name: string;
@@ -32,6 +43,8 @@ export interface Place {
   type: PlaceType;
   ownerId: string | null;
   saved: boolean;
+  legalConfirmed: boolean;
+  reportCount: number;
   createdAt: string;
 }
 
@@ -41,4 +54,13 @@ export interface NewPlace {
   latitude: number;
   longitude: number;
   type: PlaceType;
+  legalConfirmed: boolean;
+}
+
+export interface Report {
+  id: string;
+  placeId: string;
+  reason: ReportReason;
+  comment: string | null;
+  createdAt: string;
 }
