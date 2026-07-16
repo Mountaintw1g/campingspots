@@ -8,7 +8,9 @@ import { TypeLegend } from "./components/TypeLegend";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { ReportForm } from "./components/ReportForm";
 import { Logo } from "./components/Logo";
+import { AboutModal } from "./components/AboutModal";
 import { createPlace, deletePlace, fetchPlaces, reportPlace, setPlaceSaved, updatePlace } from "./api/places";
+import { getReportedPlaceIds, markPlaceReported } from "./lib/reportedPlaces";
 import type { NewPlace, Place, PlaceType, ReportReason } from "./types/place";
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
   const [reportingPlace, setReportingPlace] = useState<Place | null>(null);
+  const [reportedPlaceIds, setReportedPlaceIds] = useState<Set<string>>(() => getReportedPlaceIds());
+  const [showAbout, setShowAbout] = useState(false);
   // Typen som just nu är vald i formuläret - används för att förhandsvisa
   // markörfärgen på kartan innan platsen sparas.
   const [previewType, setPreviewType] = useState<PlaceType>("ovrigt");
@@ -47,6 +51,7 @@ function App() {
   }
 
   function startReporting(place: Place) {
+    if (reportedPlaceIds.has(place.id)) return;
     setPendingLocation(null);
     setEditingPlace(null);
     setReportingPlace(place);
@@ -108,6 +113,8 @@ function App() {
       setPlaces((prev) =>
         prev.map((p) => (p.id === reportingPlace.id ? { ...p, reportCount: p.reportCount + 1 } : p)),
       );
+      markPlaceReported(reportingPlace.id);
+      setReportedPlaceIds((prev) => new Set(prev).add(reportingPlace.id));
       setReportingPlace(null);
       setNotice("Tack, rapporten har skickats.");
       setError(null);
@@ -124,6 +131,9 @@ function App() {
           <h1>
             <span className="brand-accent">Tält</span>kartan
           </h1>
+          <button type="button" className="about-link-button" onClick={() => setShowAbout(true)}>
+            Om
+          </button>
         </div>
         <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
         <TypeLegend />
@@ -162,6 +172,7 @@ function App() {
           <PlaceList
             places={places}
             emptyMessage="Inga tältplatser ännu. Klicka på kartan för att lägga till en."
+            reportedPlaceIds={reportedPlaceIds}
             onEditPlace={startEditing}
             onDeletePlace={handleDelete}
             onToggleSaved={handleToggleSaved}
@@ -172,6 +183,7 @@ function App() {
           <PlaceList
             places={savedPlaces}
             emptyMessage="Inga sparade platser ännu. Klicka på stjärnan vid en plats för att spara den här."
+            reportedPlaceIds={reportedPlaceIds}
             onEditPlace={startEditing}
             onDeletePlace={handleDelete}
             onToggleSaved={handleToggleSaved}
@@ -185,6 +197,7 @@ function App() {
           pendingLocation={pendingLocation}
           previewType={previewType}
           editingPlaceId={editingPlace?.id ?? null}
+          reportedPlaceIds={reportedPlaceIds}
           onMapClick={startCreatingAt}
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}
@@ -192,6 +205,7 @@ function App() {
           onReportPlace={startReporting}
         />
       </main>
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </div>
   );
 }

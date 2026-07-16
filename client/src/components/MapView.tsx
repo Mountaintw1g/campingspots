@@ -41,6 +41,7 @@ interface MapViewProps {
   pendingLocation: { lat: number; lng: number } | null;
   previewType: PlaceType;
   editingPlaceId: string | null;
+  reportedPlaceIds: Set<string>;
   onMapClick: (lat: number, lng: number) => void;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
@@ -53,6 +54,7 @@ export function MapView({
   pendingLocation,
   previewType,
   editingPlaceId,
+  reportedPlaceIds,
   onMapClick,
   onEditPlace,
   onDeletePlace,
@@ -92,7 +94,9 @@ export function MapView({
             <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
             <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>{" "}
             <button onClick={() => onToggleSaved(place)}>{place.saved ? "★ Sparad" : "☆ Spara"}</button>{" "}
-            <button onClick={() => onReportPlace(place)}>Rapportera</button>
+            <button onClick={() => onReportPlace(place)} disabled={reportedPlaceIds.has(place.id)}>
+              {reportedPlaceIds.has(place.id) ? "Rapporterad ✓" : "Rapportera"}
+            </button>
           </Popup>
         </Marker>
       ))}
