@@ -7,6 +7,7 @@ import { PlaceList } from "./components/PlaceList";
 import { TypeLegend } from "./components/TypeLegend";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { ReportForm } from "./components/ReportForm";
+import { Logo } from "./components/Logo";
 import { createPlace, deletePlace, fetchPlaces, reportPlace, setPlaceSaved, updatePlace } from "./api/places";
 import type { NewPlace, Place, PlaceType, ReportReason } from "./types/place";
 
@@ -118,7 +119,12 @@ function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <h1>Tältplatser i naturen</h1>
+        <div className="brand">
+          <Logo size={34} />
+          <h1>
+            <span className="brand-accent">Tält</span>kartan
+          </h1>
+        </div>
         <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
         <TypeLegend />
         {error && <p className="error">{error}</p>}
