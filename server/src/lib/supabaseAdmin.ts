@@ -2,7 +2,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 
-// Admin-klient med service role-nyckeln - full åtkomst till Supabase Auth
+// Admin-klient med Supabases hemliga API-nyckel (secret key, eller den äldre
+// service_role-nyckeln - båda funkar) - full åtkomst till Supabase Auth
 // (radera/lista användare m.m.). Får ALDRIG exponeras till frontend, bara
 // användas här på servern. Lat-initierad så att resten av servern kan
 // starta även om nyckeln saknas lokalt - felar bara när admin-routes
