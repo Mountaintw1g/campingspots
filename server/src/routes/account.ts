@@ -10,13 +10,11 @@ accountRouter.delete("/", requireAuth, async (req, res) => {
   try {
     const { error } = await getSupabaseAdmin().auth.admin.deleteUser(req.userId!);
     if (error) {
-      // TEMPORÄRT: debug-info för att felsöka produktionsfelet, tas bort igen.
-      res.status(500).json({ error: "Kunde inte ta bort kontot", code: "ACCOUNT_DELETE_FAILED", debug: error.message });
+      res.status(500).json({ error: "Kunde inte ta bort kontot", code: "ACCOUNT_DELETE_FAILED" });
       return;
     }
     res.status(204).send();
-  } catch (err) {
-    // TEMPORÄRT: debug-info för att felsöka produktionsfelet, tas bort igen.
-    res.status(500).json({ error: "Kunde inte ta bort kontot", code: "ACCOUNT_DELETE_FAILED", debug: err instanceof Error ? err.message : String(err) });
+  } catch {
+    res.status(500).json({ error: "Kunde inte ta bort kontot", code: "ACCOUNT_DELETE_FAILED" });
   }
 });
