@@ -1,14 +1,6 @@
 export const placeTypes = ["skog", "vid_vatten", "fjall", "vagkant", "ovrigt"] as const;
 export type PlaceType = (typeof placeTypes)[number];
 
-export const placeTypeLabels: Record<PlaceType, string> = {
-  skog: "Skog",
-  vid_vatten: "Vid vatten",
-  fjall: "Fjäll",
-  vagkant: "Vägkant",
-  ovrigt: "Övrigt",
-};
-
 export interface PlaceTypeColor {
   solid: string;
   soft: string;
@@ -23,16 +15,8 @@ export const placeTypeColors: Record<PlaceType, PlaceTypeColor> = {
   ovrigt: { solid: "#7a7264", soft: "#efece7", text: "#625b4f" },
 };
 
-export const reportReasons = ["privat_mark", "farlig_plats", "felaktig_info", "ej_tillatet", "annat"] as const;
+export const reportReasons = ["farlig_plats", "felaktig_info", "ej_tillatet", "annat"] as const;
 export type ReportReason = (typeof reportReasons)[number];
-
-export const reportReasonLabels: Record<ReportReason, string> = {
-  privat_mark: "Privat mark",
-  farlig_plats: "Farlig eller olämplig plats",
-  felaktig_info: "Felaktig information",
-  ej_tillatet: "Inte tillåtet enligt allemansrätten",
-  annat: "Annat",
-};
 
 export interface Place {
   id: string;

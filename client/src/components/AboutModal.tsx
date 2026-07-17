@@ -1,10 +1,13 @@
 import { useEffect } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 interface AboutModalProps {
   onClose: () => void;
 }
 
 export function AboutModal({ onClose }: AboutModalProps) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -17,52 +20,38 @@ export function AboutModal({ onClose }: AboutModalProps) {
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()}>
         <div className="about-modal-header">
-          <h2>Om Tältkartan</h2>
-          <button type="button" className="about-close" onClick={onClose} aria-label="Stäng">
+          <h2>{t.about.title}</h2>
+          <button type="button" className="about-close" onClick={onClose} aria-label={t.myReportPanel.close}>
             ✕
           </button>
         </div>
 
         <section>
-          <h3>Syfte</h3>
-          <p>
-            Tältkartan är en karta över fria tältplatser i den svenska naturen - skog, fjäll, vid vatten
-            och vägkanter. Det handlar om platser man kan slå upp tältet gratis med stöd av allemansrätten,
-            inte betalda campingplatser eller anläggningar.
-          </p>
+          <h3>{t.about.purposeTitle}</h3>
+          <p>{t.about.purposeBody}</p>
         </section>
 
         <section>
-          <h3>Allemansrätten och ditt ansvar</h3>
+          <h3>{t.about.rightTitle}</h3>
           <p>
-            Allemansrätten ger dig rätt att vistas i naturen, men den kommer med skyldigheter: håll avstånd
-            till bostadshus, undvik skyddad natur och privat tomtmark, och lämna inga spår. Platser på
-            Tältkartan är inlagda av användare och är <strong>inte verifierade</strong> av oss. Det är alltid
-            ditt eget ansvar att kontrollera att en plats faktiskt är laglig att tälta på innan du åker dit.
-            Läs gärna mer hos{" "}
+            {t.about.rightBodyPre}
+            <strong>{t.about.rightBodyStrong}</strong>
+            {t.about.rightBodyPost}{" "}
             <a href="https://www.naturvardsverket.se/amnesomraden/allemansratten/" target="_blank" rel="noreferrer">
-              Naturvårdsverket
+              {t.about.rightLinkText}
             </a>
             .
           </p>
         </section>
 
         <section>
-          <h3>Rapportering</h3>
-          <p>
-            Ser du en plats som är felaktig, på privat mark eller olämplig av något annat skäl? Klicka på
-            "Rapportera" för att flagga den. Varje plats går att rapportera en gång per besökare, för att
-            hålla systemet till nytta och inte till spam. Du kan när som helst se och ta bort din egen
-            rapport via knappen "Din rapport".
-          </p>
+          <h3>{t.about.reportTitle}</h3>
+          <p>{t.about.reportBody}</p>
         </section>
 
         <section>
-          <h3>Framtid</h3>
-          <p>
-            Tältkartan är just nu i ett tidigt skede med en användare. Planen är att så småningom öppna upp
-            för fler användare med egna konton, så att fler kan bidra med platser tillsammans.
-          </p>
+          <h3>{t.about.futureTitle}</h3>
+          <p>{t.about.futureBody}</p>
         </section>
       </div>
     </div>

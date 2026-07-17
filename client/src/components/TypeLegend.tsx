@@ -1,4 +1,5 @@
-import { placeTypeColors, placeTypeLabels, placeTypes, type PlaceType } from "../types/place";
+import { placeTypeColors, placeTypes, type PlaceType } from "../types/place";
+import { useLanguage } from "../context/LanguageContext";
 
 interface TypeLegendProps {
   activeTypes: Set<PlaceType>;
@@ -7,6 +8,7 @@ interface TypeLegendProps {
 }
 
 export function TypeLegend({ activeTypes, onToggleType, onShowAll }: TypeLegendProps) {
+  const { t } = useLanguage();
   const allActive = activeTypes.size === placeTypes.length;
 
   return (
@@ -23,7 +25,7 @@ export function TypeLegend({ activeTypes, onToggleType, onShowAll }: TypeLegendP
                 aria-pressed={active}
               >
                 <span className="type-legend-dot" style={{ backgroundColor: placeTypeColors[type].solid }} />
-                {placeTypeLabels[type]}
+                {t.placeTypes[type]}
               </button>
             </li>
           );
@@ -31,7 +33,7 @@ export function TypeLegend({ activeTypes, onToggleType, onShowAll }: TypeLegendP
       </ul>
       {!allActive && (
         <button type="button" className="type-legend-reset" onClick={onShowAll}>
-          Visa alla kategorier
+          {t.typeLegend.showAll}
         </button>
       )}
     </div>

@@ -47,7 +47,7 @@ placesRouter.get("/", optionalAuth, async (req, res) => {
 placesRouter.get("/:id", optionalAuth, async (req, res) => {
   const [row] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!row) {
-    res.status(404).json({ error: "Platsen hittades inte" });
+    res.status(404).json({ error: "Platsen hittades inte", code: "PLACE_NOT_FOUND" });
     return;
   }
   const counts = await reportCountsByPlace();
@@ -66,19 +66,22 @@ placesRouter.post("/", requireAuth, async (req, res) => {
   const { name, description, latitude, longitude, type, legalConfirmed } = req.body ?? {};
 
   if (typeof name !== "string" || name.trim() === "") {
-    res.status(400).json({ error: "Namn krävs" });
+    res.status(400).json({ error: "Namn krävs", code: "NAME_REQUIRED" });
     return;
   }
   if (typeof latitude !== "number" || typeof longitude !== "number") {
-    res.status(400).json({ error: "Latitude och longitude krävs som tal" });
+    res.status(400).json({ error: "Latitude och longitude krävs som tal", code: "COORDINATES_REQUIRED" });
     return;
   }
   if (type !== undefined && !placeTypes.includes(type)) {
-    res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}` });
+    res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}`, code: "INVALID_TYPE" });
     return;
   }
   if (legalConfirmed !== true) {
-    res.status(400).json({ error: "Du måste bekräfta att platsen är laglig enligt allemansrätten" });
+    res.status(400).json({
+      error: "Du måste bekräfta att platsen är laglig enligt allemansrätten",
+      code: "LEGAL_CONFIRMATION_REQUIRED",
+    });
     return;
   }
 
@@ -101,18 +104,18 @@ placesRouter.post("/", requireAuth, async (req, res) => {
 placesRouter.put("/:id", requireAuth, async (req, res) => {
   const [existing] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!existing) {
-    res.status(404).json({ error: "Platsen hittades inte" });
+    res.status(404).json({ error: "Platsen hittades inte", code: "PLACE_NOT_FOUND" });
     return;
   }
-  if (existing.ownerId !== req.userId) {
-    res.status(403).json({ error: "Du kan bara redigera dina egna platser" });
+  if (existing.ownerId !== req.userId && !req.isAdmin) {
+    res.status(403).json({ error: "Du kan bara redigera dina egna platser", code: "NOT_OWNER_EDIT" });
     return;
   }
 
   const { name, description, latitude, longitude, type } = req.body ?? {};
 
   if (type !== undefined && !placeTypes.includes(type)) {
-    res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}` });
+    res.status(400).json({ error: `Typ måste vara en av: ${placeTypes.join(", ")}`, code: "INVALID_TYPE" });
     return;
   }
 
@@ -143,11 +146,11 @@ placesRouter.put("/:id", requireAuth, async (req, res) => {
 placesRouter.delete("/:id", requireAuth, async (req, res) => {
   const [existing] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!existing) {
-    res.status(404).json({ error: "Platsen hittades inte" });
+    res.status(404).json({ error: "Platsen hittades inte", code: "PLACE_NOT_FOUND" });
     return;
   }
-  if (existing.ownerId !== req.userId) {
-    res.status(403).json({ error: "Du kan bara ta bort dina egna platser" });
+  if (existing.ownerId !== req.userId && !req.isAdmin) {
+    res.status(403).json({ error: "Du kan bara ta bort dina egna platser", code: "NOT_OWNER_DELETE" });
     return;
   }
 
@@ -158,7 +161,7 @@ placesRouter.delete("/:id", requireAuth, async (req, res) => {
 placesRouter.post("/:id/save", requireAuth, async (req, res) => {
   const [place] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!place) {
-    res.status(404).json({ error: "Platsen hittades inte" });
+    res.status(404).json({ error: "Platsen hittades inte", code: "PLACE_NOT_FOUND" });
     return;
   }
 
@@ -180,7 +183,7 @@ placesRouter.get("/:id/reports/mine", requireAuth, async (req, res) => {
     .where(and(eq(reports.placeId, req.params.id), eq(reports.reporterId, req.userId!)));
 
   if (!mine) {
-    res.status(404).json({ error: "Ingen rapport hittades" });
+    res.status(404).json({ error: "Ingen rapport hittades", code: "REPORT_NOT_FOUND" });
     return;
   }
   res.json(mine);
@@ -189,13 +192,13 @@ placesRouter.get("/:id/reports/mine", requireAuth, async (req, res) => {
 placesRouter.post("/:id/reports", requireAuth, async (req, res) => {
   const [place] = await db.select().from(places).where(eq(places.id, req.params.id));
   if (!place) {
-    res.status(404).json({ error: "Platsen hittades inte" });
+    res.status(404).json({ error: "Platsen hittades inte", code: "PLACE_NOT_FOUND" });
     return;
   }
 
   const { reason, comment } = req.body ?? {};
   if (typeof reason !== "string" || !reportReasons.includes(reason as (typeof reportReasons)[number])) {
-    res.status(400).json({ error: `Anledning måste vara en av: ${reportReasons.join(", ")}` });
+    res.status(400).json({ error: `Anledning måste vara en av: ${reportReasons.join(", ")}`, code: "INVALID_REASON" });
     return;
   }
 
@@ -213,7 +216,7 @@ placesRouter.post("/:id/reports", requireAuth, async (req, res) => {
     res.status(201).json(created);
   } catch (err) {
     if (isUniqueViolation(err)) {
-      res.status(409).json({ error: "Du har redan rapporterat den här platsen" });
+      res.status(409).json({ error: "Du har redan rapporterat den här platsen", code: "ALREADY_REPORTED" });
       return;
     }
     throw err;
@@ -233,7 +236,7 @@ placesRouter.delete("/:id/reports/:reportId", requireAuth, async (req, res) => {
     .returning();
 
   if (!deleted) {
-    res.status(404).json({ error: "Rapporten hittades inte" });
+    res.status(404).json({ error: "Rapporten hittades inte", code: "REPORT_NOT_FOUND" });
     return;
   }
   res.status(204).send();

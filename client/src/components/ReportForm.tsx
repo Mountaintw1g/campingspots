@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { reportReasonLabels, reportReasons, type Place, type ReportReason } from "../types/place";
+import { reportReasons, type Place, type ReportReason } from "../types/place";
+import { useLanguage } from "../context/LanguageContext";
 
 interface ReportFormProps {
   place: Place;
@@ -8,7 +9,8 @@ interface ReportFormProps {
 }
 
 export function ReportForm({ place, onSubmit, onCancel }: ReportFormProps) {
-  const [reason, setReason] = useState<ReportReason>("privat_mark");
+  const { t } = useLanguage();
+  const [reason, setReason] = useState<ReportReason>("farlig_plats");
   const [comment, setComment] = useState("");
 
   function handleSubmit(e: FormEvent) {
@@ -18,28 +20,28 @@ export function ReportForm({ place, onSubmit, onCancel }: ReportFormProps) {
 
   return (
     <form className="place-form report-form" onSubmit={handleSubmit}>
-      <h2>Rapportera "{place.name}"</h2>
+      <h2>{t.reportForm.title(place.name)}</h2>
 
       <label>
-        Anledning
+        {t.reportForm.reason}
         <select value={reason} onChange={(e) => setReason(e.target.value as ReportReason)}>
           {reportReasons.map((r) => (
             <option key={r} value={r}>
-              {reportReasonLabels[r]}
+              {t.reportReasons[r]}
             </option>
           ))}
         </select>
       </label>
 
       <label>
-        Kommentar (valfritt)
+        {t.reportForm.comment}
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
       </label>
 
       <div className="place-form-actions">
-        <button type="submit">Skicka rapport</button>
+        <button type="submit">{t.reportForm.submit}</button>
         <button type="button" onClick={onCancel}>
-          Avbryt
+          {t.placeForm.cancel}
         </button>
       </div>
     </form>

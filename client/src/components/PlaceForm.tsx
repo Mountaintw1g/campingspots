@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { placeTypeLabels, placeTypes, type NewPlace, type PlaceType } from "../types/place";
+import { placeTypes, type NewPlace, type PlaceType } from "../types/place";
+import { useLanguage } from "../context/LanguageContext";
 
 interface PlaceFormProps {
-  title: string;
+  mode: "create" | "edit";
   location: { lat: number; lng: number };
   initialValues?: { name: string; description: string; type: PlaceType };
-  submitLabel: string;
   requireLegalConfirmation?: boolean;
   onSubmit: (place: NewPlace) => void;
   onCancel: () => void;
@@ -13,15 +13,15 @@ interface PlaceFormProps {
 }
 
 export function PlaceForm({
-  title,
+  mode,
   location,
   initialValues,
-  submitLabel,
   requireLegalConfirmation = false,
   onSubmit,
   onCancel,
   onTypeChange,
 }: PlaceFormProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState(initialValues?.name ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [type, setType] = useState<PlaceType>(initialValues?.type ?? "ovrigt");
@@ -47,27 +47,27 @@ export function PlaceForm({
 
   return (
     <form className="place-form" onSubmit={handleSubmit}>
-      <h2>{title}</h2>
+      <h2>{mode === "create" ? t.placeForm.newTitle : t.placeForm.editTitle}</h2>
       <p className="place-form-coords">
         {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
       </p>
 
       <label>
-        Namn
+        {t.placeForm.name}
         <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
       </label>
 
       <label>
-        Beskrivning
+        {t.placeForm.description}
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       </label>
 
       <label>
-        Typ
+        {t.placeForm.type}
         <select value={type} onChange={(e) => handleTypeChange(e.target.value as PlaceType)}>
-          {placeTypes.map((t) => (
-            <option key={t} value={t}>
-              {placeTypeLabels[t]}
+          {placeTypes.map((pt) => (
+            <option key={pt} value={pt}>
+              {t.placeTypes[pt]}
             </option>
           ))}
         </select>
@@ -80,17 +80,16 @@ export function PlaceForm({
             checked={legalConfirmed}
             onChange={(e) => setLegalConfirmed(e.target.checked)}
           />
-          Jag har kontrollerat att platsen är laglig att tälta på enligt allemansrätten (inte privat tomt,
-          skyddat område eller för nära bebyggelse).
+          {t.placeForm.legalConfirmLabel}
         </label>
       )}
 
       <div className="place-form-actions">
         <button type="submit" disabled={!legalConfirmed}>
-          {submitLabel}
+          {mode === "create" ? t.placeForm.saveNew : t.placeForm.saveEdit}
         </button>
         <button type="button" onClick={onCancel}>
-          Avbryt
+          {t.placeForm.cancel}
         </button>
       </div>
     </form>

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 interface AuthModalProps {
   onClose: () => void;
@@ -7,6 +8,7 @@ interface AuthModalProps {
 
 export function AuthModal({ onClose }: AuthModalProps) {
   const { signIn, signUp } = useAuth();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +45,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
         // E-postbekräftelse är avstängd i projektet - kontot är redan aktivt.
         onClose();
       } else {
-        setNotice("Kontot är skapat. Kolla din e-post för att bekräfta adressen innan du loggar in.");
+        setNotice(t.auth.signupNotice);
       }
     }
     setSubmitting(false);
@@ -53,15 +55,15 @@ export function AuthModal({ onClose }: AuthModalProps) {
     <div className="about-overlay" onClick={onClose}>
       <div className="about-modal" onClick={(e) => e.stopPropagation()}>
         <div className="about-modal-header">
-          <h2>{mode === "login" ? "Logga in" : "Skapa konto"}</h2>
-          <button type="button" className="about-close" onClick={onClose} aria-label="Stäng">
+          <h2>{mode === "login" ? t.auth.loginTitle : t.auth.signupTitle}</h2>
+          <button type="button" className="about-close" onClick={onClose} aria-label={t.myReportPanel.close}>
             ✕
           </button>
         </div>
 
         <form className="place-form" onSubmit={handleSubmit}>
           <label>
-            E-post
+            {t.auth.email}
             <input
               type="email"
               value={email}
@@ -72,7 +74,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
             />
           </label>
           <label>
-            Lösenord
+            {t.auth.password}
             <input
               type="password"
               value={password}
@@ -88,10 +90,10 @@ export function AuthModal({ onClose }: AuthModalProps) {
 
           <div className="place-form-actions">
             <button type="submit" disabled={submitting}>
-              {mode === "login" ? "Logga in" : "Skapa konto"}
+              {mode === "login" ? t.auth.loginTitle : t.auth.signupTitle}
             </button>
             <button type="button" onClick={onClose}>
-              Avbryt
+              {t.auth.cancel}
             </button>
           </div>
         </form>
@@ -105,7 +107,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
             setNotice(null);
           }}
         >
-          {mode === "login" ? "Inget konto än? Skapa ett här." : "Har du redan ett konto? Logga in istället."}
+          {mode === "login" ? t.auth.toSignup : t.auth.toLogin}
         </button>
       </div>
     </div>

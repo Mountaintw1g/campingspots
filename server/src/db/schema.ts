@@ -3,7 +3,7 @@ import { pgSchema, pgTable, uuid, text, real, boolean, timestamp, primaryKey, un
 export const placeTypes = ["skog", "vid_vatten", "fjall", "vagkant", "ovrigt"] as const;
 export type PlaceType = (typeof placeTypes)[number];
 
-export const reportReasons = ["privat_mark", "farlig_plats", "felaktig_info", "ej_tillatet", "annat"] as const;
+export const reportReasons = ["farlig_plats", "felaktig_info", "ej_tillatet", "annat"] as const;
 export type ReportReason = (typeof reportReasons)[number];
 
 // Read-only referens in i Supabase Auths schema, bara för att kunna sätta

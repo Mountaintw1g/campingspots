@@ -3,7 +3,8 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import { getTentIcon } from "./tentIcon";
 import type { Place, PlaceType } from "../types/place";
-import { placeTypeLabels } from "../types/place";
+import { useLanguage } from "../context/LanguageContext";
+import type { Translations } from "../i18n/translations";
 
 const SWEDEN_CENTER: [number, number] = [62.0, 15.0];
 const SWEDEN_ZOOM = 5;
@@ -37,7 +38,7 @@ function MapClickHandler({ onMapClick }: MapClickHandlerProps) {
   return null;
 }
 
-function LocateControl() {
+function LocateControl({ t }: { t: Translations }) {
   const map = useMap();
   const markerRef = useRef<L.CircleMarker | null>(null);
 
@@ -47,15 +48,15 @@ function LocateControl() {
     control.onAdd = () => {
       const button = L.DomUtil.create("button", "locate-control-button");
       button.type = "button";
-      button.title = "Hitta min position";
-      button.setAttribute("aria-label", "Hitta min position");
+      button.title = t.locate.title;
+      button.setAttribute("aria-label", t.locate.title);
       button.textContent = "📍";
       L.DomEvent.disableClickPropagation(button);
       L.DomEvent.disableScrollPropagation(button);
 
       button.addEventListener("click", () => {
         if (!navigator.geolocation) {
-          window.alert("Geolocation stöds inte i den här webbläsaren.");
+          window.alert(t.locate.notSupported);
           return;
         }
         button.disabled = true;
@@ -77,7 +78,7 @@ function LocateControl() {
             button.disabled = false;
           },
           (geoError) => {
-            window.alert(`Kunde inte hämta din position: ${geoError.message}`);
+            window.alert(t.locate.failed(geoError.message));
             button.disabled = false;
           },
           { enableHighAccuracy: true, timeout: 10000 },
@@ -91,7 +92,7 @@ function LocateControl() {
     return () => {
       control.remove();
     };
-  }, [map]);
+  }, [map, t]);
 
   return null;
 }
@@ -102,6 +103,7 @@ interface MapViewProps {
   previewType: PlaceType;
   editingPlaceId: string | null;
   currentUserId: string | null;
+  isAdmin: boolean;
   onMapClick: (lat: number, lng: number) => void;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
@@ -116,6 +118,7 @@ export function MapView({
   previewType,
   editingPlaceId,
   currentUserId,
+  isAdmin,
   onMapClick,
   onEditPlace,
   onDeletePlace,
@@ -123,14 +126,13 @@ export function MapView({
   onReportPlace,
   onViewReport,
 }: MapViewProps) {
+  const { t } = useLanguage();
+
   return (
     <MapContainer center={SWEDEN_CENTER} zoom={SWEDEN_ZOOM} style={{ height: "100%", width: "100%" }}>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bidragsgivare'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TileLayer attribution={t.map.attribution} url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <MapClickHandler onMapClick={onMapClick} />
-      <LocateControl />
+      <LocateControl t={t} />
       {places.map((place) => (
         <Marker
           key={place.id}
@@ -140,7 +142,7 @@ export function MapView({
           <Popup>
             <strong>{place.name}</strong>
             <br />
-            {placeTypeLabels[place.type]}
+            {t.placeTypes[place.type]}
             {place.description && (
               <>
                 <br />
@@ -150,28 +152,28 @@ export function MapView({
             {place.reportCount > 0 && (
               <>
                 <br />
-                🚩 {place.reportCount} {place.reportCount === 1 ? "rapport" : "rapporter"}
+                {t.mapPopup.reportCount(place.reportCount)}
               </>
             )}
             <br />
-            {place.ownerId === currentUserId && (
+            {(place.ownerId === currentUserId || isAdmin) && (
               <>
-                <button onClick={() => onEditPlace(place)}>Redigera</button>{" "}
-                <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>{" "}
+                <button onClick={() => onEditPlace(place)}>{t.placeList.edit}</button>{" "}
+                <button onClick={() => onDeletePlace(place.id)}>{t.placeList.delete}</button>{" "}
               </>
             )}
-            <button onClick={() => onToggleSaved(place)}>{place.savedByMe ? "★ Sparad" : "☆ Spara"}</button>{" "}
+            <button onClick={() => onToggleSaved(place)}>{place.savedByMe ? t.mapPopup.saved : t.mapPopup.save}</button>{" "}
             {place.reportedByMe ? (
-              <button onClick={() => onViewReport(place)}>Din rapport</button>
+              <button onClick={() => onViewReport(place)}>{t.mapPopup.myReport}</button>
             ) : (
-              <button onClick={() => onReportPlace(place)}>Rapportera</button>
+              <button onClick={() => onReportPlace(place)}>{t.mapPopup.report}</button>
             )}
           </Popup>
         </Marker>
       ))}
       {pendingLocation && (
         <Marker position={[pendingLocation.lat, pendingLocation.lng]} icon={getTentIcon(previewType)}>
-          <Popup>Ny plats - fyll i formuläret</Popup>
+          <Popup>{t.mapPopup.newPlacePrompt}</Popup>
         </Marker>
       )}
     </MapContainer>

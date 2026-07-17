@@ -11,7 +11,12 @@ import { MyReportPanel } from "./components/MyReportPanel";
 import { Logo } from "./components/Logo";
 import { AboutModal } from "./components/AboutModal";
 import { AuthModal } from "./components/AuthModal";
+import { AccountModal } from "./components/AccountModal";
+import { AdminModal } from "./components/AdminModal";
+import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { useAuth } from "./context/AuthContext";
+import { useLanguage } from "./context/LanguageContext";
+import { errorMessage } from "./lib/http";
 import {
   createPlace,
   deletePlace,
@@ -27,7 +32,8 @@ import { placeTypes } from "./types/place";
 import type { NewPlace, Place, PlaceType, Report, ReportReason } from "./types/place";
 
 function App() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, isAdmin, signOut } = useAuth();
+  const { t } = useLanguage();
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -37,6 +43,8 @@ function App() {
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
   const [showAbout, setShowAbout] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [activeTypes, setActiveTypes] = useState<Set<PlaceType>>(() => new Set(placeTypes));
   // Typen som just nu är vald i formuläret - används för att förhandsvisa
   // markörfärgen på kartan innan platsen sparas.
@@ -56,8 +64,9 @@ function App() {
     if (authLoading) return;
     fetchPlaces()
       .then(setPlaces)
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(errorMessage(err, t)));
     // Hämta om platserna när inloggningsstatus ändras, så savedByMe/reportedByMe/ownerId-koll blir rätt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user?.id]);
 
   function requireLogin(): boolean {
@@ -110,7 +119,7 @@ function App() {
       setViewingReportPlace(place);
       setViewingReport(report);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte hämta rapporten");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -145,7 +154,7 @@ function App() {
       setPendingLocation(null);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte spara platsen");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -156,7 +165,7 @@ function App() {
       setEditingPlace(null);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte uppdatera platsen");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -168,7 +177,7 @@ function App() {
       if (reportingPlace?.id === id) setReportingPlace(null);
       if (viewingReportPlace?.id === id) cancelForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte ta bort platsen");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -182,7 +191,7 @@ function App() {
       }
       setPlaces((prev) => prev.map((p) => (p.id === place.id ? { ...p, savedByMe: !p.savedByMe } : p)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte uppdatera sparad-status");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -196,10 +205,10 @@ function App() {
         ),
       );
       setReportingPlace(null);
-      setNotice("Tack, rapporten har skickats.");
+      setNotice(t.notices.reportSent);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte skicka rapporten");
+      setError(errorMessage(err, t));
     }
   }
 
@@ -215,11 +224,16 @@ function App() {
         ),
       );
       cancelForm();
-      setNotice("Rapporten togs bort.");
+      setNotice(t.notices.reportDeleted);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunde inte ta bort rapporten");
+      setError(errorMessage(err, t));
     }
+  }
+
+  async function handleAccountDeleted() {
+    setShowAccount(false);
+    await signOut();
   }
 
   return (
@@ -231,32 +245,40 @@ function App() {
             <span className="brand-accent">Tält</span>kartan
           </h1>
           <div className="brand-actions">
+            <LanguageSwitcher />
             {user ? (
               <>
                 <span className="brand-user">{user.email}</span>
+                <button type="button" className="about-link-button" onClick={() => setShowAccount(true)}>
+                  {t.header.account}
+                </button>
+                {isAdmin && (
+                  <button type="button" className="about-link-button" onClick={() => setShowAdmin(true)}>
+                    {t.header.admin}
+                  </button>
+                )}
                 <button type="button" className="about-link-button" onClick={() => signOut()}>
-                  Logga ut
+                  {t.header.logout}
                 </button>
               </>
             ) : (
               <button type="button" className="about-link-button" onClick={() => setShowAuth(true)}>
-                Logga in
+                {t.header.login}
               </button>
             )}
             <button type="button" className="about-link-button" onClick={() => setShowAbout(true)}>
-              Om
+              {t.header.about}
             </button>
           </div>
         </div>
-        <p className="sidebar-hint">Klicka var som helst på kartan för att lägga till en ny tältplats.</p>
+        <p className="sidebar-hint">{t.sidebar.hint}</p>
         <TypeLegend activeTypes={activeTypes} onToggleType={toggleType} onShowAll={showAllTypes} />
         {error && <p className="error">{error}</p>}
         {notice && <p className="notice">{notice}</p>}
         {pendingLocation && (
           <PlaceForm
             key="new"
-            title="Ny tältplats"
-            submitLabel="Spara plats"
+            mode="create"
             location={pendingLocation}
             requireLegalConfirmation
             onSubmit={handleCreate}
@@ -267,8 +289,7 @@ function App() {
         {editingPlace && (
           <PlaceForm
             key={editingPlace.id}
-            title="Redigera tältplats"
-            submitLabel="Spara ändringar"
+            mode="edit"
             location={{ lat: editingPlace.latitude, lng: editingPlace.longitude }}
             initialValues={{
               name: editingPlace.name,
@@ -289,36 +310,30 @@ function App() {
             onClose={cancelForm}
           />
         )}
-        <CollapsibleSection title="Mina platser" count={filteredMyPlaces.length}>
+        <CollapsibleSection title={t.sidebar.myPlaces} count={filteredMyPlaces.length}>
           {!user ? (
-            <p className="place-list-empty">Logga in för att se och hantera dina egna platser.</p>
+            <p className="place-list-empty">{t.sidebar.loginToManage}</p>
           ) : (
             <PlaceList
               places={filteredMyPlaces}
-              emptyMessage={
-                myPlaces.length === 0
-                  ? "Inga tältplatser ännu. Klicka på kartan för att lägga till en."
-                  : "Inga platser matchar valda kategorier."
-              }
+              emptyMessage={myPlaces.length === 0 ? t.sidebar.noPlacesYet : t.sidebar.noPlacesFilter}
               currentUserId={user?.id ?? null}
+              isAdmin={isAdmin}
               onEditPlace={startEditing}
               onDeletePlace={handleDelete}
               onToggleSaved={handleToggleSaved}
             />
           )}
         </CollapsibleSection>
-        <CollapsibleSection title="Sparade platser" count={filteredSavedPlaces.length}>
+        <CollapsibleSection title={t.sidebar.savedPlaces} count={filteredSavedPlaces.length}>
           {!user ? (
-            <p className="place-list-empty">Logga in för att spara favoritplatser.</p>
+            <p className="place-list-empty">{t.sidebar.loginToSave}</p>
           ) : (
             <PlaceList
               places={filteredSavedPlaces}
-              emptyMessage={
-                savedPlaces.length === 0
-                  ? "Inga sparade platser ännu. Klicka på stjärnan vid en plats för att spara den här."
-                  : "Inga sparade platser matchar valda kategorier."
-              }
+              emptyMessage={savedPlaces.length === 0 ? t.sidebar.noSavedYet : t.sidebar.noSavedFilter}
               currentUserId={user?.id ?? null}
+              isAdmin={isAdmin}
               onEditPlace={startEditing}
               onDeletePlace={handleDelete}
               onToggleSaved={handleToggleSaved}
@@ -333,6 +348,7 @@ function App() {
           previewType={previewType}
           editingPlaceId={editingPlace?.id ?? null}
           currentUserId={user?.id ?? null}
+          isAdmin={isAdmin}
           onMapClick={startCreatingAt}
           onEditPlace={startEditing}
           onDeletePlace={handleDelete}
@@ -343,6 +359,10 @@ function App() {
       </main>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showAccount && (
+        <AccountModal onClose={() => setShowAccount(false)} onAccountDeleted={handleAccountDeleted} />
+      )}
+      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
     </div>
   );
 }

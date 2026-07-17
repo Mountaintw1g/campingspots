@@ -1,4 +1,5 @@
-import { reportReasonLabels, type Place, type Report } from "../types/place";
+import type { Place, Report } from "../types/place";
+import { useLanguage } from "../context/LanguageContext";
 
 interface MyReportPanelProps {
   place: Place;
@@ -8,23 +9,25 @@ interface MyReportPanelProps {
 }
 
 export function MyReportPanel({ place, report, onDelete, onClose }: MyReportPanelProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="place-form">
-      <h2>Din rapport för "{place.name}"</h2>
+      <h2>{t.myReportPanel.title(place.name)}</h2>
       <p>
-        <strong>Anledning:</strong> {reportReasonLabels[report.reason]}
+        <strong>{t.myReportPanel.reason}</strong> {t.reportReasons[report.reason]}
       </p>
       {report.comment && (
         <p>
-          <strong>Kommentar:</strong> {report.comment}
+          <strong>{t.myReportPanel.comment}</strong> {report.comment}
         </p>
       )}
       <div className="place-form-actions">
         <button type="button" onClick={onDelete}>
-          Ta bort rapport
+          {t.myReportPanel.delete}
         </button>
         <button type="button" onClick={onClose}>
-          Stäng
+          {t.myReportPanel.close}
         </button>
       </div>
     </div>

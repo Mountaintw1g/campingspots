@@ -1,11 +1,13 @@
 import type { Place } from "../types/place";
-import { placeTypeColors, placeTypeLabels } from "../types/place";
+import { placeTypeColors } from "../types/place";
 import { TentGlyph } from "./TentGlyph";
+import { useLanguage } from "../context/LanguageContext";
 
 interface PlaceListProps {
   places: Place[];
   emptyMessage: string;
   currentUserId: string | null;
+  isAdmin: boolean;
   onEditPlace: (place: Place) => void;
   onDeletePlace: (id: string) => void;
   onToggleSaved: (place: Place) => void;
@@ -15,10 +17,13 @@ export function PlaceList({
   places,
   emptyMessage,
   currentUserId,
+  isAdmin,
   onEditPlace,
   onDeletePlace,
   onToggleSaved,
 }: PlaceListProps) {
+  const { t } = useLanguage();
+
   if (places.length === 0) {
     return <p className="place-list-empty">{emptyMessage}</p>;
   }
@@ -40,29 +45,25 @@ export function PlaceList({
                   color: placeTypeColors[place.type].text,
                 }}
               >
-                {placeTypeLabels[place.type]}
+                {t.placeTypes[place.type]}
               </span>
               <button
                 type="button"
                 className={`star-toggle${place.savedByMe ? " saved" : ""}`}
                 onClick={() => onToggleSaved(place)}
-                title={place.savedByMe ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
-                aria-label={place.savedByMe ? "Ta bort från Sparade platser" : "Lägg till i Sparade platser"}
+                title={place.savedByMe ? t.placeList.saveRemove : t.placeList.saveAdd}
+                aria-label={place.savedByMe ? t.placeList.saveRemove : t.placeList.saveAdd}
               >
                 {place.savedByMe ? "★" : "☆"}
               </button>
             </div>
           </div>
           {place.description && <p>{place.description}</p>}
-          {place.reportCount > 0 && (
-            <p className="report-count-badge">
-              🚩 {place.reportCount} {place.reportCount === 1 ? "rapport" : "rapporter"}
-            </p>
-          )}
-          {place.ownerId === currentUserId && (
+          {place.reportCount > 0 && <p className="report-count-badge">{t.placeList.reportCount(place.reportCount)}</p>}
+          {(place.ownerId === currentUserId || isAdmin) && (
             <div className="place-list-actions">
-              <button onClick={() => onEditPlace(place)}>Redigera</button>
-              <button onClick={() => onDeletePlace(place.id)}>Ta bort</button>
+              <button onClick={() => onEditPlace(place)}>{t.placeList.edit}</button>
+              <button onClick={() => onDeletePlace(place.id)}>{t.placeList.delete}</button>
             </div>
           )}
         </li>
