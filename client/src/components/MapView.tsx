@@ -143,6 +143,8 @@ export function MapView({
             <strong>{place.name}</strong>
             <br />
             {t.placeTypes[place.type]}
+            <br />
+            {place.ownerUsername ? t.mapPopup.addedBy(place.ownerUsername) : t.mapPopup.addedByUnknown}
             {place.description && (
               <>
                 <br />

@@ -26,6 +26,7 @@ export interface Place {
   longitude: number;
   type: PlaceType;
   ownerId: string | null;
+  ownerUsername: string | null;
   legalConfirmed: boolean;
   reportCount: number;
   savedByMe: boolean;

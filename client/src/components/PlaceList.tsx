@@ -59,6 +59,9 @@ export function PlaceList({
             </div>
           </div>
           {place.description && <p>{place.description}</p>}
+          <p className="place-list-added-by">
+            {place.ownerUsername ? t.placeList.addedBy(place.ownerUsername) : t.placeList.addedByUnknown}
+          </p>
           {place.reportCount > 0 && <p className="report-count-badge">{t.placeList.reportCount(place.reportCount)}</p>}
           {(place.ownerId === currentUserId || isAdmin) && (
             <div className="place-list-actions">

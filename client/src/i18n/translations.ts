@@ -61,6 +61,8 @@ function buildTranslations() {
         saveAdd: "Lägg till i Sparade platser",
         saveRemove: "Ta bort från Sparade platser",
         reportCount: (n: number) => `🚩 ${n} ${n === 1 ? "rapport" : "rapporter"}`,
+        addedBy: (username: string) => `Tillagd av ${username}`,
+        addedByUnknown: "Tillagd av okänd användare",
       },
       mapPopup: {
         newPlacePrompt: "Ny plats - fyll i formuläret",
@@ -69,6 +71,8 @@ function buildTranslations() {
         report: "Rapportera",
         myReport: "Din rapport",
         reportCount: (n: number) => `🚩 ${n} ${n === 1 ? "rapport" : "rapporter"}`,
+        addedBy: (username: string) => `Tillagd av ${username}`,
+        addedByUnknown: "Tillagd av okänd användare",
       },
       locate: {
         title: "Hitta min position",
@@ -144,6 +148,17 @@ function buildTranslations() {
         close: "Stäng",
         loadFailed: "Kunde inte hämta användarlistan",
       },
+      username: {
+        title: "Välj användarnamn",
+        intro:
+          "Innan du kan fortsätta behöver du välja ett användarnamn. Det visas på tältplatserna du lägger till.",
+        label: "Användarnamn",
+        hint: "Bara bokstäver (a-z) och siffror, 3-20 tecken.",
+        submit: "Spara användarnamn",
+        checking: "Kontrollerar tillgänglighet …",
+        available: "Tillgängligt",
+        taken: "Upptaget, välj ett annat.",
+      },
       notices: {
         reportSent: "Tack, rapporten har skickats.",
         reportDeleted: "Rapporten togs bort.",
@@ -171,6 +186,9 @@ function buildTranslations() {
         REPORT_FETCH_FAILED: "Kunde inte hämta rapporten",
         REPORT_DELETE_FAILED: "Kunde inte ta bort rapporten",
         PASSWORD_UPDATE_FAILED: "Kunde inte uppdatera lösenordet",
+        INVALID_USERNAME: "Användarnamnet måste vara 3-20 tecken och bara innehålla bokstäver och siffror",
+        USERNAME_TAKEN: "Användarnamnet är upptaget",
+        USERNAME_REQUIRED: "Du måste välja ett användarnamn innan du kan lägga till platser",
       },
     },
     en: {
@@ -226,6 +244,8 @@ function buildTranslations() {
         saveAdd: "Add to Saved places",
         saveRemove: "Remove from Saved places",
         reportCount: (n: number) => `🚩 ${n} ${n === 1 ? "report" : "reports"}`,
+        addedBy: (username: string) => `Added by ${username}`,
+        addedByUnknown: "Added by an unknown user",
       },
       mapPopup: {
         newPlacePrompt: "New place - fill in the form",
@@ -234,6 +254,8 @@ function buildTranslations() {
         report: "Report",
         myReport: "Your report",
         reportCount: (n: number) => `🚩 ${n} ${n === 1 ? "report" : "reports"}`,
+        addedBy: (username: string) => `Added by ${username}`,
+        addedByUnknown: "Added by an unknown user",
       },
       locate: {
         title: "Find my location",
@@ -309,6 +331,16 @@ function buildTranslations() {
         close: "Close",
         loadFailed: "Couldn't load the user list",
       },
+      username: {
+        title: "Choose a username",
+        intro: "Before you can continue, choose a username. It will be shown on the tent spots you add.",
+        label: "Username",
+        hint: "Letters (a-z) and numbers only, 3-20 characters.",
+        submit: "Save username",
+        checking: "Checking availability …",
+        available: "Available",
+        taken: "Taken, choose another one.",
+      },
       notices: {
         reportSent: "Thanks, your report has been sent.",
         reportDeleted: "The report was removed.",
@@ -336,6 +368,9 @@ function buildTranslations() {
         REPORT_FETCH_FAILED: "Couldn't fetch the report",
         REPORT_DELETE_FAILED: "Couldn't delete the report",
         PASSWORD_UPDATE_FAILED: "Couldn't update the password",
+        INVALID_USERNAME: "The username must be 3-20 characters and contain only letters and numbers",
+        USERNAME_TAKEN: "That username is taken",
+        USERNAME_REQUIRED: "You need to choose a username before you can add places",
       },
     },
   };

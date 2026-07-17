@@ -4,6 +4,7 @@ import cors from "cors";
 import { placesRouter } from "./routes/places.js";
 import { accountRouter } from "./routes/account.js";
 import { adminRouter } from "./routes/admin.js";
+import { profileRouter } from "./routes/profile.js";
 
 const app = express();
 const port = process.env.PORT ?? 3001;
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use("/api/places", placesRouter);
 app.use("/api/account", accountRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/profile", profileRouter);
 
 app.listen(port, () => {
   console.log(`Server körs på http://localhost:${port}`);

@@ -2,12 +2,16 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import { ADMIN_EMAILS } from "../lib/adminEmails";
+import { fetchMyProfile } from "../api/profile";
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  username: string | null;
+  usernameChecked: boolean;
+  setUsernameLocally: (username: string) => void;
   signUp: (email: string, password: string) => Promise<{ error: string | null; session: Session | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -19,6 +23,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
+  const [usernameChecked, setUsernameChecked] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -32,6 +38,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      setUsername(null);
+      setUsernameChecked(false);
+      return;
+    }
+    let cancelled = false;
+    fetchMyProfile()
+      .then((profile) => {
+        if (cancelled) return;
+        setUsername(profile.username);
+        setUsernameChecked(true);
+      })
+      .catch(() => {
+        // Nätverksfel etc - lämna usernameChecked som false så vi inte
+        // felaktigt visar "välj användarnamn"-spärren pga ett tillfälligt fel.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
+  function setUsernameLocally(newUsername: string) {
+    setUsername(newUsername);
+    setUsernameChecked(true);
+  }
 
   async function signUp(email: string, password: string) {
     const { data, error } = await supabase.auth.signUp({ email, password });
@@ -58,7 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signUp, signIn, signOut, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        isAdmin,
+        username,
+        usernameChecked,
+        setUsernameLocally,
+        signUp,
+        signIn,
+        signOut,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

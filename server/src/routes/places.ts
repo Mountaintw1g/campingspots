@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { places, placeTypes, reports, reportReasons, savedPlaces } from "../db/schema.js";
+import { places, placeTypes, reports, reportReasons, savedPlaces, profiles } from "../db/schema.js";
 import { requireAuth, optionalAuth } from "../middleware/auth.js";
 
 export const placesRouter = Router();
@@ -28,9 +28,21 @@ async function reportedPlaceIdsForUser(userId: string): Promise<Set<string>> {
   return new Set(rows.map((r) => r.placeId));
 }
 
+async function usernamesByOwnerId(): Promise<Map<string, string>> {
+  const rows = await db.select({ id: profiles.id, username: profiles.username }).from(profiles);
+  return new Map(rows.map((r) => [r.id, r.username]));
+}
+
+async function usernameForOwner(ownerId: string | null): Promise<string | null> {
+  if (!ownerId) return null;
+  const [profile] = await db.select({ username: profiles.username }).from(profiles).where(eq(profiles.id, ownerId));
+  return profile?.username ?? null;
+}
+
 placesRouter.get("/", optionalAuth, async (req, res) => {
   const rows = await db.select().from(places);
   const counts = await reportCountsByPlace();
+  const usernames = await usernamesByOwnerId();
   const savedIds = req.userId ? await savedPlaceIdsForUser(req.userId) : new Set<string>();
   const reportedIds = req.userId ? await reportedPlaceIdsForUser(req.userId) : new Set<string>();
 
@@ -38,6 +50,7 @@ placesRouter.get("/", optionalAuth, async (req, res) => {
     rows.map((row) => ({
       ...row,
       reportCount: counts.get(row.id) ?? 0,
+      ownerUsername: row.ownerId ? (usernames.get(row.ownerId) ?? null) : null,
       savedByMe: savedIds.has(row.id),
       reportedByMe: reportedIds.has(row.id),
     })),
@@ -57,6 +70,7 @@ placesRouter.get("/:id", optionalAuth, async (req, res) => {
   res.json({
     ...row,
     reportCount: counts.get(row.id) ?? 0,
+    ownerUsername: await usernameForOwner(row.ownerId),
     savedByMe: savedIds.has(row.id),
     reportedByMe: reportedIds.has(row.id),
   });
@@ -85,6 +99,12 @@ placesRouter.post("/", requireAuth, async (req, res) => {
     return;
   }
 
+  const ownerUsername = await usernameForOwner(req.userId!);
+  if (!ownerUsername) {
+    res.status(403).json({ error: "Du måste välja ett användarnamn innan du kan lägga till platser", code: "USERNAME_REQUIRED" });
+    return;
+  }
+
   const [created] = await db
     .insert(places)
     .values({
@@ -98,7 +118,7 @@ placesRouter.post("/", requireAuth, async (req, res) => {
     })
     .returning();
 
-  res.status(201).json({ ...created, reportCount: 0, savedByMe: false, reportedByMe: false });
+  res.status(201).json({ ...created, reportCount: 0, ownerUsername, savedByMe: false, reportedByMe: false });
 });
 
 placesRouter.put("/:id", requireAuth, async (req, res) => {
@@ -138,6 +158,7 @@ placesRouter.put("/:id", requireAuth, async (req, res) => {
   res.json({
     ...updated,
     reportCount: counts.get(updated.id) ?? 0,
+    ownerUsername: await usernameForOwner(updated.ownerId),
     savedByMe: savedIds.has(updated.id),
     reportedByMe: reportedIds.has(updated.id),
   });

@@ -13,6 +13,7 @@ import { AboutModal } from "./components/AboutModal";
 import { AuthModal } from "./components/AuthModal";
 import { AccountModal } from "./components/AccountModal";
 import { AdminModal } from "./components/AdminModal";
+import { UsernameGateModal } from "./components/UsernameGateModal";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { useAuth } from "./context/AuthContext";
 import { useLanguage } from "./context/LanguageContext";
@@ -32,7 +33,8 @@ import { placeTypes } from "./types/place";
 import type { NewPlace, Place, PlaceType, Report, ReportReason } from "./types/place";
 
 function App() {
-  const { user, loading: authLoading, isAdmin, signOut } = useAuth();
+  const { user, loading: authLoading, isAdmin, username, usernameChecked, signOut } = useAuth();
+  const needsUsername = !!user && usernameChecked && username === null;
   const { t } = useLanguage();
 
   const [places, setPlaces] = useState<Place[]>([]);
@@ -363,6 +365,7 @@ function App() {
         <AccountModal onClose={() => setShowAccount(false)} onAccountDeleted={handleAccountDeleted} />
       )}
       {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
+      {needsUsername && <UsernameGateModal />}
     </div>
   );
 }

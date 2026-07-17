@@ -14,6 +14,18 @@ export const authUsers = authSchema.table("users", {
   id: uuid("id").primaryKey(),
 });
 
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    username: text("username").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("profiles_username_unique").on(t.username)],
+);
+
 export const places = pgTable("places", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -65,3 +77,4 @@ export type NewPlace = typeof places.$inferInsert;
 export type SavedPlace = typeof savedPlaces.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+export type Profile = typeof profiles.$inferSelect;
