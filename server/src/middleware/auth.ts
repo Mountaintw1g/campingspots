@@ -27,21 +27,22 @@ declare global {
   }
 }
 
-async function verifyBearer(authHeader: string | undefined): Promise<string | null> {
-  if (!authHeader?.startsWith("Bearer ")) return null;
+async function verifyBearer(authHeader: string | undefined): Promise<{ userId: string | null; debug?: string }> {
+  if (!authHeader?.startsWith("Bearer ")) return { userId: null, debug: "no-bearer-header" };
   const token = authHeader.slice("Bearer ".length);
   try {
     const { payload } = await jwtVerify(token, jwks, { issuer });
-    return typeof payload.sub === "string" ? payload.sub : null;
-  } catch {
-    return null;
+    return { userId: typeof payload.sub === "string" ? payload.sub : null };
+  } catch (err) {
+    return { userId: null, debug: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
   }
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const userId = await verifyBearer(req.headers.authorization);
+  const { userId, debug } = await verifyBearer(req.headers.authorization);
   if (!userId) {
-    res.status(401).json({ error: "Inloggning krävs" });
+    // TILLFÄLLIG debug-info i svaret för att felsöka produktionsmiljön - tas bort igen.
+    res.status(401).json({ error: "Inloggning krävs", debug });
     return;
   }
   req.userId = userId;
@@ -49,6 +50,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
-  req.userId = (await verifyBearer(req.headers.authorization)) ?? undefined;
+  const { userId } = await verifyBearer(req.headers.authorization);
+  req.userId = userId ?? undefined;
   next();
 }
