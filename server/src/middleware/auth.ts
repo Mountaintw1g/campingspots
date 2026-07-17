@@ -34,7 +34,8 @@ async function verifyBearer(authHeader: string | undefined): Promise<{ userId: s
     const { payload } = await jwtVerify(token, jwks, { issuer });
     return { userId: typeof payload.sub === "string" ? payload.sub : null };
   } catch (err) {
-    return { userId: null, debug: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    return { userId: null, debug: `expected-issuer="${issuer}" | ${msg}` };
   }
 }
 
