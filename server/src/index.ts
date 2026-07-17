@@ -6,7 +6,7 @@ import { placesRouter } from "./routes/places.js";
 const app = express();
 const port = process.env.PORT ?? 3001;
 
-const allowedOrigins = ["http://localhost:5173", process.env.CORS_ORIGIN].filter(
+const allowedOrigins = ["http://localhost:5173", process.env.CORS_ORIGIN?.trim()].filter(
   (origin): origin is string => Boolean(origin),
 );
 

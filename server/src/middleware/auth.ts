@@ -9,11 +9,14 @@ if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
 }
 
-if (!process.env.SUPABASE_URL) {
+// .trim() skyddar mot extra radbrytning/mellanslag som lätt smyger sig med
+// vid copy-paste i molnplattformars miljövariabel-fält (t.ex. Render).
+const supabaseUrl = process.env.SUPABASE_URL?.trim();
+if (!supabaseUrl) {
   throw new Error("SUPABASE_URL saknas");
 }
 
-const issuer = `${process.env.SUPABASE_URL}/auth/v1`;
+const issuer = `${supabaseUrl}/auth/v1`;
 // Skapas en gång vid modul-laddning - jose cachar/uppdaterar nycklarna
 // internt, ska inte skapas om per request.
 const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
@@ -27,23 +30,21 @@ declare global {
   }
 }
 
-async function verifyBearer(authHeader: string | undefined): Promise<{ userId: string | null; debug?: string }> {
-  if (!authHeader?.startsWith("Bearer ")) return { userId: null, debug: "no-bearer-header" };
+async function verifyBearer(authHeader: string | undefined): Promise<string | null> {
+  if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice("Bearer ".length);
   try {
     const { payload } = await jwtVerify(token, jwks, { issuer });
-    return { userId: typeof payload.sub === "string" ? payload.sub : null };
-  } catch (err) {
-    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-    return { userId: null, debug: `expected-issuer="${issuer}" | ${msg}` };
+    return typeof payload.sub === "string" ? payload.sub : null;
+  } catch {
+    return null;
   }
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const { userId, debug } = await verifyBearer(req.headers.authorization);
+  const userId = await verifyBearer(req.headers.authorization);
   if (!userId) {
-    // TILLFÄLLIG debug-info i svaret för att felsöka produktionsmiljön - tas bort igen.
-    res.status(401).json({ error: "Inloggning krävs", debug });
+    res.status(401).json({ error: "Inloggning krävs" });
     return;
   }
   req.userId = userId;
@@ -51,7 +52,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
-  const { userId } = await verifyBearer(req.headers.authorization);
-  req.userId = userId ?? undefined;
+  req.userId = (await verifyBearer(req.headers.authorization)) ?? undefined;
   next();
 }
