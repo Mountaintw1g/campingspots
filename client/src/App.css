@@ -1,11 +1,13 @@
 #root {
   height: 100vh;
+  height: 100dvh;
   width: 100%;
 }
 
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
 }
 
@@ -569,4 +571,59 @@
 .place-list-empty {
   color: #666;
   font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 46vh;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .map-container {
+    flex: 1;
+    min-height: 40vh;
+  }
+
+  .locate-control-button {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
+
+  .about-link-button,
+  .language-switcher-button {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .place-form-actions,
+  .place-list-actions {
+    flex-wrap: wrap;
+  }
+
+  .place-form-actions button,
+  .place-list-actions button,
+  .about-modal button[type="submit"] {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .star-toggle {
+    font-size: 1.4rem;
+  }
+
+  .about-overlay {
+    padding: 0.6rem;
+  }
+
+  .about-modal {
+    padding: 1.1rem 1.25rem;
+    max-height: 92vh;
+  }
 }
