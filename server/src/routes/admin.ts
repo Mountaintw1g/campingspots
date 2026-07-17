@@ -8,7 +8,8 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const { data, error } = await getSupabaseAdmin().auth.admin.listUsers({ perPage: 1000 });
     if (error) {
-      res.status(500).json({ error: "Kunde inte hämta användarlistan", code: "GENERIC" });
+      // TEMPORÄRT: debug-info för att felsöka produktionsfelet, tas bort igen.
+      res.status(500).json({ error: "Kunde inte hämta användarlistan", code: "GENERIC", debug: error.message });
       return;
     }
 
@@ -20,7 +21,8 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
     }));
 
     res.json(users);
-  } catch {
-    res.status(500).json({ error: "Kunde inte hämta användarlistan", code: "GENERIC" });
+  } catch (err) {
+    // TEMPORÄRT: debug-info för att felsöka produktionsfelet, tas bort igen.
+    res.status(500).json({ error: "Kunde inte hämta användarlistan", code: "GENERIC", debug: err instanceof Error ? err.message : String(err) });
   }
 });
