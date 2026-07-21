@@ -1,6 +1,6 @@
 # Tältkartan (The Tent Map)
 
-**Live site: [campingspots.vercel.app](https://campingspots.vercel.app/)**
+**Live site: [campingspots.vercel.app](https://campingspots.vercel.app/)** (Takes 30 seconds to wake up server)
 
 A full-stack web app for finding and sharing free, wild tent camping spots in Swedish nature — under *allemansrätten* ("the right to roam"), Sweden's legal right to access and camp on most land for free. Think of it as a crowdsourced map for wild camping: users drop a pin, tag the terrain type, and everyone else can see it, save it, or flag it if something's wrong.
 
